@@ -80,6 +80,9 @@ struct ApplyControls: View {
         VStack(alignment: .leading, spacing: 6) {
             Toggle("Remap pointer movement", isOn: $store.config.applyToPointer)
             Toggle("Remap two‑finger scrolling", isOn: $store.config.applyToScroll)
+            Toggle("Swipe between pages (back/forward)", isOn: $store.config.swipeNavigation)
+                .disabled(!store.config.applyToScroll)
+            Toggle("Right‑edge swipe opens Notification Center", isOn: $store.config.notificationCenterSwipe)
         }
         .toggleStyle(.checkbox)
     }

@@ -98,7 +98,7 @@ final class TouchMonitor {
         }
         let now = CFAbsoluteTimeGetCurrent()
         let cfg = SettingsStore.engine.get()
-        let edgeSwipeOn = cfg.enabled && !cfg.transform.isIdentity
+        let edgeSwipeOn = cfg.enabled && cfg.notificationCenterSwipe && !cfg.transform.isIdentity
         let openNotificationCenter = devices.mutate { map -> Bool in
             guard var d = map[index] else { return false }
             d.touches = points

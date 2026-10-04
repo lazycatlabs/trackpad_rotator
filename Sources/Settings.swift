@@ -77,6 +77,10 @@ struct EngineConfig: Equatable {
     var transform = AxisTransform()
     var applyToPointer = true
     var applyToScroll = true
+    /// Turn the gesture data swipe between pages reads, so sideways swipes go back/forward.
+    var swipeNavigation = true
+    /// Open Notification Center when two fingers swipe left from your right edge.
+    var notificationCenterSwipe = true
     var target: DeviceTarget = .externalTrackpads
     /// Multipliers on top of macOS's own tracking/scroll speed.
     var pointerSpeed = 1.0
@@ -146,6 +150,10 @@ final class SettingsStore: ObservableObject {
         c.transform.invertY = d.bool(forKey: "invertY")
         if d.object(forKey: "applyToPointer") != nil { c.applyToPointer = d.bool(forKey: "applyToPointer") }
         if d.object(forKey: "applyToScroll") != nil { c.applyToScroll = d.bool(forKey: "applyToScroll") }
+        if d.object(forKey: "swipeNavigation") != nil { c.swipeNavigation = d.bool(forKey: "swipeNavigation") }
+        if d.object(forKey: "notificationCenterSwipe") != nil {
+            c.notificationCenterSwipe = d.bool(forKey: "notificationCenterSwipe")
+        }
         c.target = DeviceTarget(rawValue: d.integer(forKey: "target")) ?? .externalTrackpads
         if d.object(forKey: "pointerSpeed") != nil { c.pointerSpeed = d.double(forKey: "pointerSpeed") }
         if d.object(forKey: "scrollSpeed") != nil { c.scrollSpeed = d.double(forKey: "scrollSpeed") }
@@ -169,6 +177,8 @@ final class SettingsStore: ObservableObject {
         defaults.set(config.transform.invertY, forKey: "invertY")
         defaults.set(config.applyToPointer, forKey: "applyToPointer")
         defaults.set(config.applyToScroll, forKey: "applyToScroll")
+        defaults.set(config.swipeNavigation, forKey: "swipeNavigation")
+        defaults.set(config.notificationCenterSwipe, forKey: "notificationCenterSwipe")
         defaults.set(config.target.rawValue, forKey: "target")
         defaults.set(config.pointerSpeed, forKey: "pointerSpeed")
         defaults.set(config.scrollSpeed, forKey: "scrollSpeed")

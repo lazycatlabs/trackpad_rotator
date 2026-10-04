@@ -304,7 +304,7 @@ final class EventTapController {
             event.setDoubleValueField(r.field.h, value: r.value.x)
             event.setDoubleValueField(r.field.v, value: r.value.y)
         }
-        rewriteAttachedHID(event, reference: (ph, pv))
+        if cfg.swipeNavigation { rewriteAttachedHID(event, reference: (ph, pv)) }
 
         if momentum == 3 || phase == 8 { scrollTransforming = false } // momentum end / cancelled
         return true
@@ -342,9 +342,10 @@ final class EventTapController {
             scrollSuppressed = rotated && TouchMonitor.shared.isEdgeSwipeActive(cfg.target)
             scrollTransforming = rotated && cfg.applyToScroll && TouchMonitor.shared.isTargetActive(cfg.target)
             scrollVector = nil
+            log.debug("gesture began: transforming=\(self.scrollTransforming, privacy: .public) suppressed=\(self.scrollSuppressed, privacy: .public)")
         }
         if scrollSuppressed { return false }
-        guard scrollTransforming else { return true }
+        guard scrollTransforming, SettingsStore.engine.get().swipeNavigation else { return true }
         // Setting X and Y also updates the event's other copies of them (fields 113–117, 123, 139…).
         let gx = event.getDoubleValueField(gestureScrollXField)
         let gy = event.getDoubleValueField(gestureScrollYField)
