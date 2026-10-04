@@ -48,6 +48,7 @@ final class EventTapController {
 
     private var pointerTap: CFMachPort?
     private var scrollTap: CFMachPort?
+    private let dockSwipes = DockSwipeRewriter()
     private var displayBounds: [CGRect] = []
 
     var isRunning: Bool { pointerTap != nil && scrollTap != nil }
@@ -68,7 +69,8 @@ final class EventTapController {
         let pointerTypes: [CGEventType] = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]
         // Scroll: at the session level, which is exactly what apps receive. The gesture events
         // that accompany each scroll (used by AppKit's swipe-between-pages tracking) come too.
-        guard let pTap = makeTap(at: .cghidEventTap, types: pointerTypes),
+        // Dock swipes there too: the Dock acts on them before they reach the session.
+        guard let pTap = makeTap(at: .cghidEventTap, types: pointerTypes, rawTypes: [dockSwipeEventType]),
               let sTap = makeTap(at: .cgSessionEventTap, types: [.scrollWheel], rawTypes: [gestureEventType]) else {
             return false
         }
@@ -102,6 +104,10 @@ final class EventTapController {
     }
 
     fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        if type.rawValue == dockSwipeEventType {
+            dockSwipes.handle(event)
+            return Unmanaged.passUnretained(event)
+        }
         if type.rawValue == gestureEventType {
             return handleGesture(event) ? Unmanaged.passUnretained(event) : nil
         }
@@ -415,6 +421,8 @@ final class EventTapController {
 
 // Undocumented gesture event (NSEventTypeGesture) and its fields.
 private let gestureEventType: UInt32 = 29
+/// Three- and four-finger swipes on their way to the Dock.
+private let dockSwipeEventType: UInt32 = 30
 private let gestureHIDTypeField = CGEventField(rawValue: 110)!
 private let gestureScrollXField = CGEventField(rawValue: 118)!
 private let gestureScrollYField = CGEventField(rawValue: 119)!

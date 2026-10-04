@@ -81,6 +81,8 @@ struct EngineConfig: Equatable {
     var swipeNavigation = true
     /// Open Notification Center when two fingers swipe left from your right edge.
     var notificationCenterSwipe = true
+    /// Turn three- and four-finger swipes; System Settings still decides what they do.
+    var dockSwipes = true
     var target: DeviceTarget = .externalTrackpads
     /// Multipliers on top of macOS's own tracking/scroll speed.
     var pointerSpeed = 1.0
@@ -154,6 +156,7 @@ final class SettingsStore: ObservableObject {
         if d.object(forKey: "notificationCenterSwipe") != nil {
             c.notificationCenterSwipe = d.bool(forKey: "notificationCenterSwipe")
         }
+        if d.object(forKey: "dockSwipes") != nil { c.dockSwipes = d.bool(forKey: "dockSwipes") }
         c.target = DeviceTarget(rawValue: d.integer(forKey: "target")) ?? .externalTrackpads
         if d.object(forKey: "pointerSpeed") != nil { c.pointerSpeed = d.double(forKey: "pointerSpeed") }
         if d.object(forKey: "scrollSpeed") != nil { c.scrollSpeed = d.double(forKey: "scrollSpeed") }
@@ -179,6 +182,7 @@ final class SettingsStore: ObservableObject {
         defaults.set(config.applyToScroll, forKey: "applyToScroll")
         defaults.set(config.swipeNavigation, forKey: "swipeNavigation")
         defaults.set(config.notificationCenterSwipe, forKey: "notificationCenterSwipe")
+        defaults.set(config.dockSwipes, forKey: "dockSwipes")
         defaults.set(config.target.rawValue, forKey: "target")
         defaults.set(config.pointerSpeed, forKey: "pointerSpeed")
         defaults.set(config.scrollSpeed, forKey: "scrollSpeed")

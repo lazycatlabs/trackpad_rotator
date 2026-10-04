@@ -83,6 +83,7 @@ struct ApplyControls: View {
             Toggle("Swipe between pages (back/forward)", isOn: $store.config.swipeNavigation)
                 .disabled(!store.config.applyToScroll)
             Toggle("Right‑edge swipe opens Notification Center", isOn: $store.config.notificationCenterSwipe)
+            Toggle("Three‑ and four‑finger swipes", isOn: $store.config.dockSwipes)
         }
         .toggleStyle(.checkbox)
     }

@@ -86,6 +86,48 @@ enum AttachedHIDEvent {
         return changed
     }
 
+    private static let typeDockSwipe: UInt32 = 23
+    private static let fieldSwipeMask: UInt32 = typeDockSwipe << 16
+    private static let fieldSwipeMotion: UInt32 = typeDockSwipe << 16 | 1
+    private static let fieldSwipeProgress: UInt32 = typeDockSwipe << 16 | 2
+    private static let fieldSwipePositionX: UInt32 = typeDockSwipe << 16 | 3
+    private static let fieldSwipePositionY: UInt32 = typeDockSwipe << 16 | 4
+    private static let getInteger = load(iokit, "IOHIDEventGetIntegerValue",
+                                         as: (@convention(c) (Ref, UInt32) -> Int).self)
+    private static let setInteger = load(iokit, "IOHIDEventSetIntegerValue",
+                                         as: (@convention(c) (Ref, UInt32, Int) -> Void).self)
+
+    /// Rewrites an attached dock swipe event (what the Dock acts on), but only when its fields hold
+    /// what `expecting` says the CGEvent had, which confirms their layout. Its progress has the
+    /// opposite sign to the CGEvent's, so it's multiplied by `sense` rather than copied.
+    /// Its position is +y down.
+    @discardableResult
+    static func rewriteDockSwipe(of event: CGEvent, expecting: (motion: Int64, progress: Double),
+                                 motion: Int64, sense: Double, mask: Int64, transform: AxisTransform) -> Bool {
+        guard let copyEvent, let setEvent, let getType, let getFloat, let setFloat, let getInteger, let setInteger,
+              let hid = copyEvent(event)?.takeRetainedValue(), getType(hid) == typeDockSwipe,
+              getInteger(hid, fieldSwipeMotion) == Int(expecting.motion),
+              abs(abs(getFloat(hid, fieldSwipeProgress)) - abs(expecting.progress)) < 1e-3 else { return false }
+        setInteger(hid, fieldSwipeMotion, Int(motion))
+        setFloat(hid, fieldSwipeProgress, getFloat(hid, fieldSwipeProgress) * sense)
+        if getInteger(hid, fieldSwipeMask) != 0 { setInteger(hid, fieldSwipeMask, Int(mask)) }
+        let p = transform.apply(getFloat(hid, fieldSwipePositionX), getFloat(hid, fieldSwipePositionY))
+        setFloat(hid, fieldSwipePositionX, p.x)
+        setFloat(hid, fieldSwipePositionY, p.y)
+        setEvent(event, hid)
+        return true
+    }
+
+    /// The first fields of an attached dock swipe event, for diagnostics.
+    static func dockSwipeDescription(of event: CGEvent) -> String {
+        guard let copyEvent, let getType, let getFloat,
+              let hid = copyEvent(event)?.takeRetainedValue() else { return "none" }
+        let type = getType(hid)
+        guard type == typeDockSwipe else { return "type \(type)" }
+        return (0..<7).map { String(format: "%.3f", getFloat(hid, typeDockSwipe << 16 | UInt32($0))) }
+            .joined(separator: ",")
+    }
+
     /// Scroll values of the attached event, for diagnostics.
     static func scroll(of event: CGEvent) -> (x: Double, y: Double)? {
         guard let copyEvent, let getType, let getFloat,

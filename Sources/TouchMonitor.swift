@@ -142,10 +142,11 @@ final class TouchMonitor {
     }
 
     /// True while a finger is on (or just left) a device matching `target`.
-    func isTargetActive(_ target: DeviceTarget) -> Bool {
+    func isTargetActive(_ target: DeviceTarget, within grace: CFAbsoluteTime? = nil) -> Bool {
         let now = CFAbsoluteTimeGetCurrent()
+        let grace = grace ?? releaseGrace
         return devices.mutate { map in
-            map.values.contains { $0.matches(target) && now - $0.lastTouch < releaseGrace }
+            map.values.contains { $0.matches(target) && now - $0.lastTouch < grace }
         }
     }
 
