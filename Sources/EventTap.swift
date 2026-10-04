@@ -237,6 +237,30 @@ final class EventTapController {
     /// The same for the attached device event's scroll values.
     private var hidSense = 1.0
 
+    /// Per-gesture totals, logged when the fingers lift, to diagnose swipe between pages.
+    private struct ScrollSummary {
+        var events = 0, zeroedAtStart = 0, gestures = 0, hidRewrites = 0
+        var pointIn = (x: 0.0, y: 0.0), pointOut = (x: 0.0, y: 0.0)
+        var hidIn = (x: 0.0, y: 0.0), hidOut = (x: 0.0, y: 0.0)
+    }
+    private var summary = ScrollSummary()
+
+    private func logSummary() {
+        let s = summary
+        func v(_ p: (x: Double, y: Double)) -> String { String(format: "(%.0f,%.0f)", p.x, p.y) }
+        log.debug("""
+            scroll ended: transforming=\(self.scrollTransforming, privacy: .public) \
+            suppressed=\(self.scrollSuppressed, privacy: .public) \
+            swipeNav=\(SettingsStore.engine.get().swipeNavigation, privacy: .public) \
+            events=\(s.events, privacy: .public) zeroedAtStart=\(s.zeroedAtStart, privacy: .public) \
+            gestures=\(s.gestures, privacy: .public) hidRewrites=\(s.hidRewrites, privacy: .public) \
+            point \(v(s.pointIn), privacy: .public)->\(v(s.pointOut), privacy: .public) \
+            hid \(v(s.hidIn), privacy: .public)->\(v(s.hidOut), privacy: .public) \
+            rawSense=\(self.rawSense, privacy: .public) hidSense=\(self.hidSense, privacy: .public) \
+            natural=\(self.naturalScrolling, privacy: .public)
+            """)
+    }
+
     /// Returns false when the event should be dropped.
     private func handleScroll(_ event: CGEvent) -> Bool {
         let cfg = SettingsStore.engine.get()
@@ -251,6 +275,7 @@ final class EventTapController {
         let phase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
         let momentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
         if phase == 1 || phase == 128 || (phase == 0 && momentum == 0) { // began / mayBegin / legacy
+            if phase == 128 { summary = ScrollSummary() } // otherwise the gesture's "began" reset it
             scrollSuppressed = TouchMonitor.shared.isEdgeSwipeActive(cfg.target)
             scrollTransforming = cfg.applyToScroll && TouchMonitor.shared.isTargetActive(cfg.target)
             scrollDirection.reset()
@@ -284,6 +309,12 @@ final class EventTapController {
         let ph = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
         let pv = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
         let p = rewrite(ph, pv)
+        if momentum == 0 {
+            summary.events += 1
+            if scrollVector == nil && (ph != 0 || pv != 0) { summary.zeroedAtStart += 1 }
+            summary.pointIn.x += ph; summary.pointIn.y += pv
+            summary.pointOut.x += p.x; summary.pointOut.y += p.y
+        }
         // The undocumented raw deltas (pre natural scrolling, so usually opposite in sign) are what
         // swipe between pages decides on; give them the same direction, keeping their sense.
         var raw: [(field: (h: CGEventField, v: CGEventField), value: (x: Double, y: Double))] = []
@@ -306,6 +337,7 @@ final class EventTapController {
         }
         if cfg.swipeNavigation { rewriteAttachedHID(event, reference: (ph, pv)) }
 
+        if phase == 4 || phase == 8 { logSummary() } // fingers lifted / cancelled
         if momentum == 3 || phase == 8 { scrollTransforming = false } // momentum end / cancelled
         return true
     }
@@ -320,11 +352,19 @@ final class EventTapController {
     /// Rewrites the device event attached to `event` like its fields; `reference` is the
     /// event's original delta, used to tell which way the device values point.
     private func rewriteAttachedHID(_ event: CGEvent, reference: (x: Double, y: Double)) {
+        var first = true
         AttachedHIDEvent.rewriteScroll(of: event) { x, y in
             let dot = x * reference.x + y * reference.y
             if dot != 0 { hidSense = dot < 0 ? -1 : 1 }
             let r = rewrite(x, y)
-            return (r.x * hidSense, r.y * hidSense)
+            let out = (x: r.x * hidSense, y: r.y * hidSense)
+            if first { // the top-level event; the rest are its children
+                first = false
+                summary.hidRewrites += 1
+                summary.hidIn.x += x; summary.hidIn.y += y
+                summary.hidOut.x += out.x; summary.hidOut.y += out.y
+            }
+            return out
         }
     }
 
@@ -342,10 +382,12 @@ final class EventTapController {
             scrollSuppressed = rotated && TouchMonitor.shared.isEdgeSwipeActive(cfg.target)
             scrollTransforming = rotated && cfg.applyToScroll && TouchMonitor.shared.isTargetActive(cfg.target)
             scrollVector = nil
+            summary = ScrollSummary()
             log.debug("gesture began: transforming=\(self.scrollTransforming, privacy: .public) suppressed=\(self.scrollSuppressed, privacy: .public)")
         }
         if scrollSuppressed { return false }
         guard scrollTransforming, SettingsStore.engine.get().swipeNavigation else { return true }
+        summary.gestures += 1
         // Setting X and Y also updates the event's other copies of them (fields 113–117, 123, 139…).
         let gx = event.getDoubleValueField(gestureScrollXField)
         let gy = event.getDoubleValueField(gestureScrollYField)
