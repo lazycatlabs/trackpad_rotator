@@ -234,6 +234,8 @@ final class EventTapController {
     private var scrollVector: (x: Double, y: Double)?
     /// Whether the raw scroll deltas point the same way as the point deltas (1) or opposite (-1).
     private var rawSense = -1.0
+    /// The same for the attached device event's scroll values.
+    private var hidSense = 1.0
 
     /// Returns false when the event should be dropped.
     private func handleScroll(_ event: CGEvent) -> Bool {
@@ -302,6 +304,7 @@ final class EventTapController {
             event.setDoubleValueField(r.field.h, value: r.value.x)
             event.setDoubleValueField(r.field.v, value: r.value.y)
         }
+        rewriteAttachedHID(event, reference: (ph, pv))
 
         if momentum == 3 || phase == 8 { scrollTransforming = false } // momentum end / cancelled
         return true
@@ -312,6 +315,17 @@ final class EventTapController {
         guard let vec = scrollVector else { return (0, 0) } // hold still until the direction is known
         let m = hypot(h, v)
         return (vec.x * m, vec.y * m)
+    }
+
+    /// Rewrites the device event attached to `event` like its fields; `reference` is the
+    /// event's original delta, used to tell which way the device values point.
+    private func rewriteAttachedHID(_ event: CGEvent, reference: (x: Double, y: Double)) {
+        AttachedHIDEvent.rewriteScroll(of: event) { x, y in
+            let dot = x * reference.x + y * reference.y
+            if dot != 0 { hidSense = dot < 0 ? -1 : 1 }
+            let r = rewrite(x, y)
+            return (r.x * hidSense, r.y * hidSense)
+        }
     }
 
     /// Each trackpad scroll comes with a gesture event carrying the same motion in the pad's
@@ -332,10 +346,12 @@ final class EventTapController {
         if scrollSuppressed { return false }
         guard scrollTransforming else { return true }
         // Setting X and Y also updates the event's other copies of them (fields 113–117, 123, 139…).
-        let g = rewrite(event.getDoubleValueField(gestureScrollXField),
-                        event.getDoubleValueField(gestureScrollYField))
+        let gx = event.getDoubleValueField(gestureScrollXField)
+        let gy = event.getDoubleValueField(gestureScrollYField)
+        let g = rewrite(gx, gy)
         event.setDoubleValueField(gestureScrollXField, value: g.x)
         event.setDoubleValueField(gestureScrollYField, value: g.y)
+        rewriteAttachedHID(event, reference: (gx, gy))
         return true
     }
 }
