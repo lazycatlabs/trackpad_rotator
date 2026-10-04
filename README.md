@@ -25,19 +25,25 @@ On first launch, grant:
 - `EventTap.swift`:
   - **Pointer** (HID-level tap): direction comes from finger travel turned by the orientation; distance comes from macOS's own delta × the pointer speed. While the trackpad is touched, the cursor is detached from the hardware (`CGAssociateMouseAndMouseCursorPosition`) and placed with `CGWarpMouseCursorPosition`.
   - **Scroll** (session-level tap): the same direction approach, with momentum keeping the last direction and Natural scrolling respected.
+  - **Swipe between pages**: AppKit decides on more than the scroll deltas, so the tap also turns the undocumented raw deltas, the companion gesture events, the `IOHIDEvent` attached to each event (via private SkyLight/IOKit calls) and the finger positions in the touch events.
+  - **Notification Center** (`EdgeSwipe.swift`): macOS looks for its edge swipe on the pad's own right edge, so the app recognises "two fingers left from your right edge" itself, opens Notification Center through its accessibility action and drops that scroll.
+- `HIDEvent.swift`: reads and rewrites the `IOHIDEvent` attached to a `CGEvent`.
 - `Settings.swift`: `AxisTransform` (rotation + swap/invert) and persisted settings.
-- `Views.swift`: the menu bar panel and the Touch Preview & Settings window.
+- `Views.swift`: the menu bar panel and the Touch Preview & Settings window. Swipe between pages and the Notification Center swipe can each be turned off there.
 
 Diagnostics are logged under the `local.trackpadrotator` subsystem:
 
 ```bash
-log show --last 5m --predicate 'subsystem == "local.trackpadrotator"'
+/usr/bin/log show --last 5m --predicate 'subsystem == "local.trackpadrotator"'
 ```
+
+(Use the full path in zsh, where `log` is a shell builtin.) A per-gesture scroll summary is logged at debug level; add `--debug` to see it.
 
 ## Limitations
 
-- System gestures (Mission Control and Spaces swipes, pinch, rotate) are handled by macOS and are not remapped.
-- It relies on a private framework, which may change in future macOS releases.
+- Three- and four-finger swipes (Mission Control, App Exposé, switching full-screen apps) are recognised by macOS in the pad's own axes and are not remapped. Pinch and rotate don't depend on orientation.
+- macOS still opens Notification Center from the pad's own right edge, wherever that edge now is.
+- It relies on private frameworks and undocumented event fields, which may change in future macOS releases. If they do, swipe between pages is the first thing to stop working.
 
 ## Icon
 
