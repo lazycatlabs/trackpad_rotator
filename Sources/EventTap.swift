@@ -103,8 +103,7 @@ final class EventTapController {
 
     fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
         if type.rawValue == gestureEventType {
-            handleGesture(event)
-            return Unmanaged.passUnretained(event)
+            return handleGesture(event) ? Unmanaged.passUnretained(event) : nil
         }
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
@@ -112,7 +111,7 @@ final class EventTapController {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
         case .scrollWheel:
-            handleScroll(event)
+            if !handleScroll(event) { return nil }
         case .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged:
             handlePointer(event)
         default:
@@ -226,31 +225,37 @@ final class EventTapController {
 
     /// Decided at the start of each scroll gesture and kept through its momentum phase.
     private var scrollTransforming = false
+    /// The current scroll is a Notification Center edge swipe we handle ourselves: drop it.
+    private var scrollSuppressed = false
     private var scrollDirection = DirectionTracker()
     private var naturalScrolling = true
     /// What a unit of scroll magnitude becomes (direction × speed × natural-scrolling sign),
     /// shared with the companion gesture events. Nil until the direction is known.
     private var scrollVector: (x: Double, y: Double)?
 
-    private func handleScroll(_ event: CGEvent) {
+    /// Returns false when the event should be dropped.
+    private func handleScroll(_ event: CGEvent) -> Bool {
         let cfg = SettingsStore.engine.get()
-        guard cfg.enabled, cfg.applyToScroll, !cfg.transform.isIdentity else {
+        guard cfg.enabled, !cfg.transform.isIdentity else {
             scrollTransforming = false
-            return
+            scrollSuppressed = false
+            return true
         }
         // Trackpads send continuous (pixel) scrolling; classic wheels don't.
-        guard event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0 else { return }
+        guard event.getIntegerValueField(.scrollWheelEventIsContinuous) != 0 else { return true }
 
         let phase = event.getIntegerValueField(.scrollWheelEventScrollPhase)
         let momentum = event.getIntegerValueField(.scrollWheelEventMomentumPhase)
         if phase == 1 || phase == 128 || (phase == 0 && momentum == 0) { // began / mayBegin / legacy
-            scrollTransforming = TouchMonitor.shared.isTargetActive(cfg.target)
+            scrollSuppressed = TouchMonitor.shared.isEdgeSwipeActive(cfg.target)
+            scrollTransforming = cfg.applyToScroll && TouchMonitor.shared.isTargetActive(cfg.target)
             scrollDirection.reset()
             scrollVector = nil
             _ = TouchMonitor.shared.consumeMotion(cfg.target) // drop motion from before the gesture
             naturalScrolling = UserDefaults.standard.object(forKey: "com.apple.swipescrolldirection") as? Bool ?? true
         }
-        guard scrollTransforming else { return }
+        if scrollSuppressed { return false }
+        guard scrollTransforming else { return true }
         stats.scrollRemapped += 1
 
         // While fingers are down, keep following them; momentum keeps the last direction.
@@ -282,6 +287,7 @@ final class EventTapController {
         event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: Int64(p.y.rounded()))
 
         if momentum == 3 || phase == 8 { scrollTransforming = false } // momentum end / cancelled
+        return true
     }
 
     /// Applies `scrollVector` to a delta; only the delta's magnitude is kept.
@@ -294,22 +300,26 @@ final class EventTapController {
     /// Each trackpad scroll comes with a gesture event carrying the same motion in the pad's
     /// own axes. AppKit's swipe-between-pages tracking reads that one, so rewrite it the same way
     /// as the scroll; otherwise a sideways swipe looks vertical and never navigates.
-    private func handleGesture(_ event: CGEvent) {
-        guard event.getIntegerValueField(gestureHIDTypeField) == hidEventTypeScroll else { return }
+    /// Returns false when the event should be dropped.
+    private func handleGesture(_ event: CGEvent) -> Bool {
+        guard event.getIntegerValueField(gestureHIDTypeField) == hidEventTypeScroll else { return true }
         // The gesture's "began" reaches the session just before the scroll's, so start the
         // new gesture here rather than keep the previous one's direction.
         if event.getIntegerValueField(gesturePhaseField) == 1 {
             let cfg = SettingsStore.engine.get()
-            scrollTransforming = cfg.enabled && cfg.applyToScroll && !cfg.transform.isIdentity
-                && TouchMonitor.shared.isTargetActive(cfg.target)
+            let rotated = cfg.enabled && !cfg.transform.isIdentity
+            scrollSuppressed = rotated && TouchMonitor.shared.isEdgeSwipeActive(cfg.target)
+            scrollTransforming = rotated && cfg.applyToScroll && TouchMonitor.shared.isTargetActive(cfg.target)
             scrollVector = nil
         }
-        guard scrollTransforming else { return }
+        if scrollSuppressed { return false }
+        guard scrollTransforming else { return true }
         // Setting X and Y also updates the event's other copies of them (fields 113–117, 123, 139…).
         let g = rewrite(event.getDoubleValueField(gestureScrollXField),
                         event.getDoubleValueField(gestureScrollYField))
         event.setDoubleValueField(gestureScrollXField, value: g.x)
         event.setDoubleValueField(gestureScrollYField, value: g.y)
+        return true
     }
 }
 

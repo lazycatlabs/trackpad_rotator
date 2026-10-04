@@ -20,6 +20,7 @@ struct DeviceSnapshot: Identifiable {
     var pendingMotion = (x: 0.0, y: 0.0)
     var lastCentroid: (x: Double, y: Double)?
     var lastFingerIDs: Set<Int32> = []
+    var edgeSwipe = EdgeSwipeTracker()
 
     var widthMM: Double { Double(info.width) / 100 }
     var heightMM: Double { Double(info.height) / 100 }
@@ -96,8 +97,10 @@ final class TouchMonitor {
             }
         }
         let now = CFAbsoluteTimeGetCurrent()
-        devices.mutate { map in
-            guard var d = map[index] else { return }
+        let cfg = SettingsStore.engine.get()
+        let edgeSwipeOn = cfg.enabled && !cfg.transform.isIdentity
+        let openNotificationCenter = devices.mutate { map -> Bool in
+            guard var d = map[index] else { return false }
             d.touches = points
             let touching = points.filter(\.isTouching)
             if !touching.isEmpty { d.lastTouch = now }
@@ -117,8 +120,25 @@ final class TouchMonitor {
                 d.lastCentroid = (cx, cy)
             }
             d.lastFingerIDs = ids
+
+            var fired = false
+            if edgeSwipeOn, d.matches(cfg.target) {
+                fired = d.edgeSwipe.update(touching: touching, widthMM: d.widthMM, heightMM: d.heightMM,
+                                           transform: cfg.transform, now: now)
+            } else {
+                d.edgeSwipe = EdgeSwipeTracker()
+            }
             map[index] = d
+            return fired
         }
+        if openNotificationCenter {
+            DispatchQueue.main.async { NotificationCenterUI.open() }
+        }
+    }
+
+    /// True while fingers that came down at your right edge are on a device matching `target`.
+    func isEdgeSwipeActive(_ target: DeviceTarget) -> Bool {
+        devices.mutate { map in map.values.contains { $0.matches(target) && $0.edgeSwipe.active } }
     }
 
     /// True while a finger is on (or just left) a device matching `target`.
