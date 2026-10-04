@@ -349,6 +349,15 @@ final class EventTapController {
         return (vec.x * m, vec.y * m)
     }
 
+    /// Gesture events without a HID type carry the finger positions (what NSTouch reports).
+    /// Swipe between pages follows those too, so turn them into your frame.
+    private func handleTouches(_ event: CGEvent) {
+        let cfg = SettingsStore.engine.get()
+        guard cfg.enabled, cfg.swipeNavigation, !cfg.transform.isIdentity,
+              TouchMonitor.shared.isTargetActive(cfg.target) else { return }
+        AttachedHIDEvent.rewriteTouches(of: event, cfg.transform)
+    }
+
     /// Rewrites the device event attached to `event` like its fields; `reference` is the
     /// event's original delta, used to tell which way the device values point.
     private func rewriteAttachedHID(_ event: CGEvent, reference: (x: Double, y: Double)) {
@@ -373,7 +382,12 @@ final class EventTapController {
     /// as the scroll; otherwise a sideways swipe looks vertical and never navigates.
     /// Returns false when the event should be dropped.
     private func handleGesture(_ event: CGEvent) -> Bool {
-        guard event.getIntegerValueField(gestureHIDTypeField) == hidEventTypeScroll else { return true }
+        let hidType = event.getIntegerValueField(gestureHIDTypeField)
+        if hidType == hidEventTypeNone {
+            handleTouches(event)
+            return true
+        }
+        guard hidType == hidEventTypeScroll else { return true }
         // The gesture's "began" reaches the session just before the scroll's, so start the
         // new gesture here rather than keep the previous one's direction.
         if event.getIntegerValueField(gesturePhaseField) == 1 {
@@ -405,6 +419,7 @@ private let gestureHIDTypeField = CGEventField(rawValue: 110)!
 private let gestureScrollXField = CGEventField(rawValue: 118)!
 private let gestureScrollYField = CGEventField(rawValue: 119)!
 private let gesturePhaseField = CGEventField(rawValue: 132)!
+private let hidEventTypeNone: Int64 = 0
 private let hidEventTypeScroll: Int64 = 6
 /// Undocumented scroll event fields: raw device deltas (horizontal, vertical), two scales.
 private let rawScrollDeltaFields: [(CGEventField, CGEventField)] = [

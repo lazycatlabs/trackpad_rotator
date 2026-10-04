@@ -51,6 +51,41 @@ enum AttachedHIDEvent {
         return changed
     }
 
+    private static let typeVelocity: UInt32 = 9
+    private static let typeDigitizer: UInt32 = 11
+
+    /// Turns the finger positions (digitizer events, 0…1 with +y down, about the pad's centre)
+    /// and velocities in the attached event and its descendants. Returns false when there were none.
+    @discardableResult
+    static func rewriteTouches(of event: CGEvent, _ transform: AxisTransform) -> Bool {
+        guard let copyEvent, let setEvent, let getType, let getFloat, let setFloat, let getChildren,
+              let hid = copyEvent(event)?.takeRetainedValue() else { return false }
+        var changed = false
+        func visit(_ e: Ref, depth: Int) {
+            switch getType(e) {
+            case typeDigitizer:
+                let fx = typeDigitizer << 16, fy = typeDigitizer << 16 | 1
+                let t = transform.apply(getFloat(e, fx) - 0.5, getFloat(e, fy) - 0.5)
+                setFloat(e, fx, t.x + 0.5)
+                setFloat(e, fy, t.y + 0.5)
+                changed = true
+            case typeVelocity:
+                let fx = typeVelocity << 16, fy = typeVelocity << 16 | 1
+                let t = transform.apply(getFloat(e, fx), getFloat(e, fy))
+                setFloat(e, fx, t.x)
+                setFloat(e, fy, t.y)
+                changed = true
+            default:
+                break
+            }
+            guard depth < 3, let children = getChildren(e)?.takeUnretainedValue() as? [Ref] else { return }
+            for child in children { visit(child, depth: depth + 1) }
+        }
+        visit(hid, depth: 0)
+        if changed { setEvent(event, hid) }
+        return changed
+    }
+
     /// Scroll values of the attached event, for diagnostics.
     static func scroll(of event: CGEvent) -> (x: Double, y: Double)? {
         guard let copyEvent, let getType, let getFloat,
