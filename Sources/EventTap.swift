@@ -228,8 +228,9 @@ final class EventTapController {
     private var scrollTransforming = false
     private var scrollDirection = DirectionTracker()
     private var naturalScrolling = true
-    /// Angle (radians) the last scroll event was turned by, reused for its companion gesture event.
-    private var scrollTurn: Double?
+    /// What a unit of scroll magnitude becomes (direction × speed × natural-scrolling sign),
+    /// shared with the companion gesture events. Nil until the direction is known.
+    private var scrollVector: (x: Double, y: Double)?
 
     private func handleScroll(_ event: CGEvent) {
         let cfg = SettingsStore.engine.get()
@@ -245,7 +246,7 @@ final class EventTapController {
         if phase == 1 || phase == 128 || (phase == 0 && momentum == 0) { // began / mayBegin / legacy
             scrollTransforming = TouchMonitor.shared.isTargetActive(cfg.target)
             scrollDirection.reset()
-            scrollTurn = nil
+            scrollVector = nil
             _ = TouchMonitor.shared.consumeMotion(cfg.target) // drop motion from before the gesture
             naturalScrolling = UserDefaults.standard.object(forKey: "com.apple.swipescrolldirection") as? Bool ?? true
         }
@@ -263,52 +264,52 @@ final class EventTapController {
         // With natural scrolling the content follows the fingers; otherwise it's reversed.
         // Axis2 is horizontal, Axis1 vertical, both positive toward right/down finger travel.
         let sign = naturalScrolling ? 1.0 : -1.0
-        func rewrite(_ h: Double, _ v: Double) -> (h: Double, v: Double) {
-            guard let dir else { return (0, 0) }
-            let m = hypot(h, v) * cfg.scrollSpeed * sign
-            return (dir.x * m, dir.y * m)
-        }
+        scrollVector = dir.map { ($0.x * cfg.scrollSpeed * sign, $0.y * cfg.scrollSpeed * sign) }
 
-        let fh = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
-        let fv = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
-        let f = rewrite(fh, fv)
-        if hypot(fh, fv) > 1e-9, hypot(f.h, f.v) > 1e-9 {
-            scrollTurn = atan2(f.v, f.h) - atan2(fv, fh)
-        }
-        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: f.h)
-        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: f.v)
-
-        let p = rewrite(Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)),
-                        Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)))
-        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: Int64(p.h.rounded()))
-        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: Int64(p.v.rounded()))
-
+        // Read every delta before writing any: setting the line delta also overwrites the
+        // fixed-point and point deltas, so it has to be written first.
         let d = rewrite(Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis2)),
                         Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1)))
-        event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: Int64(d.h.rounded()))
-        event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: Int64(d.v.rounded()))
+        let f = rewrite(event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2),
+                        event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1))
+        let p = rewrite(Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)),
+                        Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)))
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: Int64(d.x.rounded()))
+        event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: Int64(d.y.rounded()))
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: f.x)
+        event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: f.y)
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: Int64(p.x.rounded()))
+        event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: Int64(p.y.rounded()))
 
         if momentum == 3 || phase == 8 { scrollTransforming = false } // momentum end / cancelled
     }
 
-    /// Each trackpad scroll is followed by a gesture event carrying the same motion in the pad's
-    /// own axes. AppKit's swipe-between-pages tracking reads that one, so turn it the same way
-    /// as the scroll it belongs to; otherwise a sideways swipe looks vertical and never navigates.
+    /// Applies `scrollVector` to a delta; only the delta's magnitude is kept.
+    private func rewrite(_ h: Double, _ v: Double) -> (x: Double, y: Double) {
+        guard let vec = scrollVector else { return (0, 0) } // hold still until the direction is known
+        let m = hypot(h, v)
+        return (vec.x * m, vec.y * m)
+    }
+
+    /// Each trackpad scroll comes with a gesture event carrying the same motion in the pad's
+    /// own axes. AppKit's swipe-between-pages tracking reads that one, so rewrite it the same way
+    /// as the scroll; otherwise a sideways swipe looks vertical and never navigates.
     private func handleGesture(_ event: CGEvent) {
-        guard scrollTransforming,
-              event.getIntegerValueField(gestureHIDTypeField) == hidEventTypeScroll else { return }
-        let x = event.getDoubleValueField(gestureScrollXField)
-        let y = event.getDoubleValueField(gestureScrollYField)
-        guard x != 0 || y != 0 else { return }
-        // Hold still until the scroll direction is known, as the scroll event itself does.
-        guard let turn = scrollTurn else {
-            event.setDoubleValueField(gestureScrollXField, value: 0)
-            event.setDoubleValueField(gestureScrollYField, value: 0)
-            return
+        guard event.getIntegerValueField(gestureHIDTypeField) == hidEventTypeScroll else { return }
+        // The gesture's "began" reaches the session just before the scroll's, so start the
+        // new gesture here rather than keep the previous one's direction.
+        if event.getIntegerValueField(gesturePhaseField) == 1 {
+            let cfg = SettingsStore.engine.get()
+            scrollTransforming = cfg.enabled && cfg.applyToScroll && !cfg.transform.isIdentity
+                && TouchMonitor.shared.isTargetActive(cfg.target)
+            scrollVector = nil
         }
-        let c = cos(turn), s = sin(turn)
-        event.setDoubleValueField(gestureScrollXField, value: x * c - y * s)
-        event.setDoubleValueField(gestureScrollYField, value: x * s + y * c)
+        guard scrollTransforming else { return }
+        // Setting X and Y also updates the event's other copies of them (fields 113–117, 123, 139…).
+        let g = rewrite(event.getDoubleValueField(gestureScrollXField),
+                        event.getDoubleValueField(gestureScrollYField))
+        event.setDoubleValueField(gestureScrollXField, value: g.x)
+        event.setDoubleValueField(gestureScrollYField, value: g.y)
     }
 }
 
@@ -317,6 +318,7 @@ private let gestureEventType: UInt32 = 29
 private let gestureHIDTypeField = CGEventField(rawValue: 110)!
 private let gestureScrollXField = CGEventField(rawValue: 118)!
 private let gestureScrollYField = CGEventField(rawValue: 119)!
+private let gesturePhaseField = CGEventField(rawValue: 132)!
 private let hidEventTypeScroll: Int64 = 6
 
 private func eventTapCallback(
