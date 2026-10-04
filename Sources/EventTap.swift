@@ -232,6 +232,8 @@ final class EventTapController {
     /// What a unit of scroll magnitude becomes (direction × speed × natural-scrolling sign),
     /// shared with the companion gesture events. Nil until the direction is known.
     private var scrollVector: (x: Double, y: Double)?
+    /// Whether the raw scroll deltas point the same way as the point deltas (1) or opposite (-1).
+    private var rawSense = -1.0
 
     /// Returns false when the event should be dropped.
     private func handleScroll(_ event: CGEvent) -> Bool {
@@ -277,14 +279,29 @@ final class EventTapController {
                         Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1)))
         let f = rewrite(event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2),
                         event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1))
-        let p = rewrite(Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2)),
-                        Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1)))
+        let ph = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
+        let pv = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
+        let p = rewrite(ph, pv)
+        // The undocumented raw deltas (pre natural scrolling, so usually opposite in sign) are what
+        // swipe between pages decides on; give them the same direction, keeping their sense.
+        var raw: [(field: (h: CGEventField, v: CGEventField), value: (x: Double, y: Double))] = []
+        for (fh, fv) in rawScrollDeltaFields {
+            let oh = event.getDoubleValueField(fh), ov = event.getDoubleValueField(fv)
+            let dot = oh * ph + ov * pv
+            if dot != 0 { rawSense = dot < 0 ? -1 : 1 }
+            let r = rewrite(oh, ov)
+            raw.append(((fh, fv), (r.x * rawSense, r.y * rawSense)))
+        }
         event.setIntegerValueField(.scrollWheelEventDeltaAxis2, value: Int64(d.x.rounded()))
         event.setIntegerValueField(.scrollWheelEventDeltaAxis1, value: Int64(d.y.rounded()))
         event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: f.x)
         event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: f.y)
         event.setIntegerValueField(.scrollWheelEventPointDeltaAxis2, value: Int64(p.x.rounded()))
         event.setIntegerValueField(.scrollWheelEventPointDeltaAxis1, value: Int64(p.y.rounded()))
+        for r in raw {
+            event.setDoubleValueField(r.field.h, value: r.value.x)
+            event.setDoubleValueField(r.field.v, value: r.value.y)
+        }
 
         if momentum == 3 || phase == 8 { scrollTransforming = false } // momentum end / cancelled
         return true
@@ -330,6 +347,11 @@ private let gestureScrollXField = CGEventField(rawValue: 118)!
 private let gestureScrollYField = CGEventField(rawValue: 119)!
 private let gesturePhaseField = CGEventField(rawValue: 132)!
 private let hidEventTypeScroll: Int64 = 6
+/// Undocumented scroll event fields: raw device deltas (horizontal, vertical), two scales.
+private let rawScrollDeltaFields: [(CGEventField, CGEventField)] = [
+    (CGEventField(rawValue: 175)!, CGEventField(rawValue: 176)!),
+    (CGEventField(rawValue: 177)!, CGEventField(rawValue: 178)!),
+]
 
 private func eventTapCallback(
     proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, userInfo: UnsafeMutableRawPointer?
