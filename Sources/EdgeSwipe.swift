@@ -68,11 +68,8 @@ enum NotificationCenterUI {
             log.error("Notification Center process not found")
             return
         }
-        let element = AXUIElementCreateApplication(app.processIdentifier)
-        var windows: CFTypeRef?
-        AXUIElementCopyAttributeValue(element, kAXWindowsAttribute as CFString, &windows)
-        guard ((windows as? [AnyObject]) ?? []).isEmpty else { return } // already open
-        // Reports kAXErrorActionUnsupported even though it works, so the result isn't checked.
-        AXUIElementPerformAction(element, "AXToggleUI" as CFString)
+        // Whether it's already open can't be told: its window stays listed (even on screen)
+        // after it closes. It reports kAXErrorActionUnsupported even though it works.
+        AXUIElementPerformAction(AXUIElementCreateApplication(app.processIdentifier), "AXToggleUI" as CFString)
     }
 }
