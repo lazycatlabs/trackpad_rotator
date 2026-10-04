@@ -27,9 +27,10 @@ On first launch, grant:
   - **Scroll** (session-level tap): the same direction approach, with momentum keeping the last direction and Natural scrolling respected.
   - **Swipe between pages**: AppKit decides on more than the scroll deltas, so the tap also turns the undocumented raw deltas, the companion gesture events, the `IOHIDEvent` attached to each event (via private SkyLight/IOKit calls) and the finger positions in the touch events.
   - **Notification Center** (`EdgeSwipe.swift`): macOS looks for its edge swipe on the pad's own right edge, so the app recognises "two fingers left from your right edge" itself, opens Notification Center through its accessibility action and drops that scroll.
+  - **Three- and four-finger swipes** (`DockSwipe.swift`, HID-level tap): macOS recognises them on the pad's own axes and sends the Dock a "dock swipe" event with an axis and a progress. The tap turns those (and the attached `IOHIDEvent`, which is what the Dock acts on) into your frame. What each swipe does is still decided by System Settings → Trackpad → More Gestures.
 - `HIDEvent.swift`: reads and rewrites the `IOHIDEvent` attached to a `CGEvent`.
 - `Settings.swift`: `AxisTransform` (rotation + swap/invert) and persisted settings.
-- `Views.swift`: the menu bar panel and the Touch Preview & Settings window. Swipe between pages and the Notification Center swipe can each be turned off there.
+- `Views.swift`: the menu bar panel and the Touch Preview & Settings window. Swipe between pages, the Notification Center swipe and the three/four-finger swipes can each be turned off there.
 
 Diagnostics are logged under the `local.trackpadrotator` subsystem:
 
@@ -41,9 +42,9 @@ Diagnostics are logged under the `local.trackpadrotator` subsystem:
 
 ## Limitations
 
-- Three- and four-finger swipes (Mission Control, App Exposé, switching full-screen apps) are recognised by macOS in the pad's own axes and are not remapped. Pinch and rotate don't depend on orientation.
+- Pinch and rotate aren't touched; they don't depend on orientation.
 - macOS still opens Notification Center from the pad's own right edge, wherever that edge now is.
-- It relies on private frameworks and undocumented event fields, which may change in future macOS releases. If they do, swipe between pages is the first thing to stop working.
+- It relies on private frameworks and undocumented event fields, which may change in future macOS releases. If they do, swipe between pages and the three/four-finger swipes are the first things to stop working.
 
 ## Icon
 
