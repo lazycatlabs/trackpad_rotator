@@ -66,9 +66,10 @@ final class EventTapController {
 
         // Pointer: as early as possible, so the cursor can be repositioned before it's drawn.
         let pointerTypes: [CGEventType] = [.mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged]
-        // Scroll: at the session level, which is exactly what apps receive.
+        // Scroll: at the session level, which is exactly what apps receive. The gesture events
+        // that accompany each scroll (used by AppKit's swipe-between-pages tracking) come too.
         guard let pTap = makeTap(at: .cghidEventTap, types: pointerTypes),
-              let sTap = makeTap(at: .cgSessionEventTap, types: [.scrollWheel]) else {
+              let sTap = makeTap(at: .cgSessionEventTap, types: [.scrollWheel], rawTypes: [gestureEventType]) else {
             return false
         }
         pointerTap = pTap
@@ -81,8 +82,8 @@ final class EventTapController {
         return true
     }
 
-    private func makeTap(at location: CGEventTapLocation, types: [CGEventType]) -> CFMachPort? {
-        let mask = types.reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1.rawValue) }
+    private func makeTap(at location: CGEventTapLocation, types: [CGEventType], rawTypes: [UInt32] = []) -> CFMachPort? {
+        let mask = (types.map(\.rawValue) + rawTypes).reduce(CGEventMask(0)) { $0 | (CGEventMask(1) << $1) }
         guard let tap = CGEvent.tapCreate(tap: location, place: .headInsertEventTap, options: .defaultTap,
                                           eventsOfInterest: mask, callback: eventTapCallback, userInfo: nil)
         else { return nil }
@@ -101,6 +102,10 @@ final class EventTapController {
     }
 
     fileprivate func handle(type: CGEventType, event: CGEvent) -> Unmanaged<CGEvent>? {
+        if type.rawValue == gestureEventType {
+            handleGesture(event)
+            return Unmanaged.passUnretained(event)
+        }
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
             for tap in [pointerTap, scrollTap].compactMap({ $0 }) where !CGEvent.tapIsEnabled(tap: tap) {
@@ -223,6 +228,8 @@ final class EventTapController {
     private var scrollTransforming = false
     private var scrollDirection = DirectionTracker()
     private var naturalScrolling = true
+    /// Angle (radians) the last scroll event was turned by, reused for its companion gesture event.
+    private var scrollTurn: Double?
 
     private func handleScroll(_ event: CGEvent) {
         let cfg = SettingsStore.engine.get()
@@ -238,6 +245,7 @@ final class EventTapController {
         if phase == 1 || phase == 128 || (phase == 0 && momentum == 0) { // began / mayBegin / legacy
             scrollTransforming = TouchMonitor.shared.isTargetActive(cfg.target)
             scrollDirection.reset()
+            scrollTurn = nil
             _ = TouchMonitor.shared.consumeMotion(cfg.target) // drop motion from before the gesture
             naturalScrolling = UserDefaults.standard.object(forKey: "com.apple.swipescrolldirection") as? Bool ?? true
         }
@@ -261,8 +269,12 @@ final class EventTapController {
             return (dir.x * m, dir.y * m)
         }
 
-        let f = rewrite(event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2),
-                        event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1))
+        let fh = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2)
+        let fv = event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1)
+        let f = rewrite(fh, fv)
+        if hypot(fh, fv) > 1e-9, hypot(f.h, f.v) > 1e-9 {
+            scrollTurn = atan2(f.v, f.h) - atan2(fv, fh)
+        }
         event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2, value: f.h)
         event.setDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1, value: f.v)
 
@@ -278,7 +290,34 @@ final class EventTapController {
 
         if momentum == 3 || phase == 8 { scrollTransforming = false } // momentum end / cancelled
     }
+
+    /// Each trackpad scroll is followed by a gesture event carrying the same motion in the pad's
+    /// own axes. AppKit's swipe-between-pages tracking reads that one, so turn it the same way
+    /// as the scroll it belongs to; otherwise a sideways swipe looks vertical and never navigates.
+    private func handleGesture(_ event: CGEvent) {
+        guard scrollTransforming,
+              event.getIntegerValueField(gestureHIDTypeField) == hidEventTypeScroll else { return }
+        let x = event.getDoubleValueField(gestureScrollXField)
+        let y = event.getDoubleValueField(gestureScrollYField)
+        guard x != 0 || y != 0 else { return }
+        // Hold still until the scroll direction is known, as the scroll event itself does.
+        guard let turn = scrollTurn else {
+            event.setDoubleValueField(gestureScrollXField, value: 0)
+            event.setDoubleValueField(gestureScrollYField, value: 0)
+            return
+        }
+        let c = cos(turn), s = sin(turn)
+        event.setDoubleValueField(gestureScrollXField, value: x * c - y * s)
+        event.setDoubleValueField(gestureScrollYField, value: x * s + y * c)
+    }
 }
+
+// Undocumented gesture event (NSEventTypeGesture) and its fields.
+private let gestureEventType: UInt32 = 29
+private let gestureHIDTypeField = CGEventField(rawValue: 110)!
+private let gestureScrollXField = CGEventField(rawValue: 118)!
+private let gestureScrollYField = CGEventField(rawValue: 119)!
+private let hidEventTypeScroll: Int64 = 6
 
 private func eventTapCallback(
     proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, userInfo: UnsafeMutableRawPointer?
