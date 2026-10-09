@@ -9,18 +9,26 @@
 Use a Magic Trackpad turned 90°, 180° or 270°, and the pointer, scrolling and swipes still follow your fingers.<br>
 A native macOS menu bar app, built with SwiftUI.
 
-![macOS 13+](https://img.shields.io/badge/macOS-13%2B-111111?logo=apple)
-![Swift 5](https://img.shields.io/badge/Swift-5-F05138?logo=swift&logoColor=white)
-![SwiftUI](https://img.shields.io/badge/UI-SwiftUI-0A84FF)
+![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
+![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
+![SwiftUI + Observation](https://img.shields.io/badge/SwiftUI-Observation-0A84FF)
 ![Xcode](https://img.shields.io/badge/Xcode-ready-147EFB?logo=xcode&logoColor=white)
 
 [Features](#features) · [Install](#install) · [Permissions](#permissions) · [How it works](#how-it-works) · [FAQ](#faq) · [Development](#development)
+
+<br>
+
+<img src="docs/demo.gif" alt="A Magic Trackpad turned 90°, with the pointer path drawn with and without Trackpad Rotator" width="608">
+
+<sub>Trackpad turned 90°: the pink pointer is what macOS does on its own, the white one is with Trackpad Rotator.</sub>
 
 </div>
 
 ## Features
 
 **Every gesture, in your frame, not the trackpad's.**
+
+<img src="docs/menu-bar.png" align="right" width="340" alt="The menu bar panel: on/off switch, orientation, touch point axes, remap toggles and speed sliders">
 
 | | |
 | --- | --- |
@@ -31,14 +39,20 @@ A native macOS menu bar app, built with SwiftUI.
 | 🪟 **Three- and four-finger swipes** | Mission Control, App Exposé and switching Spaces are turned to match. What each one does is still up to System Settings → Trackpad. |
 | 🎯 **Only the trackpad** | External Magic Trackpads only by default, or all trackpads. A mouse is never touched. |
 
+<br clear="right">
+
 The **Touch Preview** window shows your fingers twice: as the trackpad reports them and after your orientation. When the right side moves the way your hand does, you're set. Swap X/Y and invert either axis for unusual setups.
+
+<p align="center">
+  <img src="docs/touch-preview.png" alt="The Touch Preview window: the raw pad on the left, the mapped pad on the right, orientation and axis controls" width="860">
+</p>
 
 > [!TIP]
 > Every remap (pointer, scroll, page swipes, Notification Center, three/four-finger swipes) has its own toggle in the menu bar panel, plus speed sliders for pointer and scroll.
 
 ## Install
 
-There are no prebuilt releases yet, so build it from source. Requires macOS 13 or later.
+There are no prebuilt releases yet, so build it from source. Requires macOS 14 Sonoma or later.
 
 **With Xcode**
 
@@ -143,7 +157,7 @@ No. There's no network access, no analytics and no accounts. Finger data is only
 
 ## Development
 
-You'll need Xcode 16 or later (the project uses synchronized folders, so new files in `Sources/` are picked up automatically).
+You'll need Xcode 16 or later. The app is built in the Swift 6 language mode with strict concurrency, and the project uses synchronized folders, so new files in `Sources/` are picked up automatically.
 
 ```bash
 git clone https://github.com/lazycatlabs/trackpad_rotator.git
@@ -170,7 +184,7 @@ xcodebuild -project TrackpadRotator.xcodeproj -scheme TrackpadRotator build
 <details>
 <summary><b>Project layout</b></summary>
 
-The UI is SwiftUI with MVVM: **Views → ViewModels → Repositories → Engine**. Views never call the engine or system APIs directly.
+The UI is SwiftUI with MVVM: **Views → ViewModels → Repositories → Engine**. Views never call the engine or system APIs directly. ViewModels are `@MainActor @Observable` classes, passed down with `.environment(_:)`.
 
 ```
 Sources/
@@ -192,6 +206,7 @@ Sources/
 TrackpadRotator.xcodeproj  Xcode project
 build.sh                 swiftc build, no Xcode project needed
 Scripts/                 App icon generator
+docs/                    README images, captured from the landing page
 ```
 
 </details>
