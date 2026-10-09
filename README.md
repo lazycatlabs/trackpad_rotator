@@ -9,12 +9,13 @@
 Use a Magic Trackpad turned 90°, 180° or 270°, and the pointer, scrolling and swipes still follow your fingers.<br>
 A native macOS menu bar app, built with SwiftUI.
 
+[![Latest release](https://img.shields.io/github/v/release/lazycatlabs/trackpad_rotator?label=release&color=0A84FF)](https://github.com/lazycatlabs/trackpad_rotator/releases/latest)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
 ![SwiftUI + Observation](https://img.shields.io/badge/SwiftUI-Observation-0A84FF)
 ![Xcode](https://img.shields.io/badge/Xcode-ready-147EFB?logo=xcode&logoColor=white)
 
-[Features](#features) · [Install](#install) · [Permissions](#permissions) · [How it works](#how-it-works) · [FAQ](#faq) · [Development](#development)
+[**Download for Mac**](https://github.com/lazycatlabs/trackpad_rotator/releases/latest) · [Features](#features) · [Install](#install) · [Permissions](#permissions) · [How it works](#how-it-works) · [FAQ](#faq) · [Development](#development)
 
 <br>
 
@@ -52,7 +53,27 @@ The **Touch Preview** window shows your fingers twice: as the trackpad reports t
 
 ## Install
 
-There are no prebuilt releases yet, so build it from source. Requires macOS 14 Sonoma or later.
+Requires macOS 14 Sonoma or later.
+
+**Homebrew**
+
+```bash
+brew install --cask lazycatlabs/tap/trackpad-rotator
+```
+
+**Or download the zip** from [Releases](https://github.com/lazycatlabs/trackpad_rotator/releases/latest), unzip it and drag **Trackpad Rotator** to Applications.
+
+> [!NOTE]
+> **First launch.** Trackpad Rotator isn't notarized yet, so macOS blocks it the first time:
+>
+> 1. Open Trackpad Rotator.
+> 2. Go to **System Settings → Privacy & Security**.
+> 3. Click **Open Anyway**, once.
+
+When the app runs from `/Applications` for the first time, it turns on **Launch at login**. You can turn that off in the settings window.
+
+<details>
+<summary><b>Build from source</b></summary>
 
 **With Xcode**
 
@@ -72,7 +93,7 @@ Choose the **TrackpadRotator** scheme and press **⌘R**. To install, use **Prod
 cp -R "build/Trackpad Rotator.app" /Applications/
 ```
 
-When the app runs from `/Applications` for the first time, it turns on **Launch at login**. You can turn that off in the settings window.
+</details>
 
 ## Permissions
 
