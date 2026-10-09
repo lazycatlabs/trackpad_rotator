@@ -1,6 +1,7 @@
 import Foundation
 
 /// The UI's only door into the engine: trackpad discovery, live touches and the event tap.
+@MainActor
 final class TrackpadRepository {
     static let shared = TrackpadRepository()
 

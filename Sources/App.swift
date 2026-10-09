@@ -2,14 +2,14 @@ import SwiftUI
 
 @main
 struct TrackpadRotatorApp: App {
-    @StateObject private var status = StatusViewModel()
-    @StateObject private var settings = SettingsViewModel()
+    @State private var status = StatusViewModel()
+    @State private var settings = SettingsViewModel()
 
     var body: some Scene {
         MenuBarExtra {
             MenuPanel()
-                .environmentObject(status)
-                .environmentObject(settings)
+                .environment(status)
+                .environment(settings)
         } label: {
             Image(systemName: settings.config.enabled ? "rotate.right.fill" : "rotate.right")
         }
@@ -17,8 +17,8 @@ struct TrackpadRotatorApp: App {
 
         Window("Trackpad Rotator", id: "main") {
             MainWindow()
-                .environmentObject(status)
-                .environmentObject(settings)
+                .environment(status)
+                .environment(settings)
         }
         .windowResizability(.contentSize)
     }

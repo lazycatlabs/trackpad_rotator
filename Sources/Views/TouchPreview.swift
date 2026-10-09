@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Live touch preview
 
 struct TouchPreview: View {
-    @EnvironmentObject var status: StatusViewModel
+    @Environment(StatusViewModel.self) private var status
     var transform: AxisTransform
     var target: DeviceTarget
 

@@ -1,22 +1,24 @@
 import Foundation
+import Observation
 
 /// User-editable settings; every change is saved and handed to the engine.
-final class SettingsViewModel: ObservableObject {
-    @Published var config: EngineConfig {
+@MainActor @Observable
+final class SettingsViewModel {
+    var config: EngineConfig {
         didSet {
             guard config != oldValue else { return }
             repository.save(config)
         }
     }
 
-    @Published var launchAtLogin: Bool {
+    var launchAtLogin: Bool {
         didSet {
             guard launchAtLogin != oldValue else { return }
             repository.setLaunchAtLogin(launchAtLogin)
         }
     }
 
-    private let repository: SettingsRepository
+    @ObservationIgnored private let repository: SettingsRepository
 
     init(repository: SettingsRepository = .shared) {
         self.repository = repository

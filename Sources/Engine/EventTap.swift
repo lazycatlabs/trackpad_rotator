@@ -43,6 +43,8 @@ private struct DirectionTracker {
 }
 
 /// Rewrites pointer and scroll events coming from the rotated trackpad.
+/// The taps, timers and observers all run on the main run loop.
+@MainActor
 final class EventTapController {
     static let shared = EventTapController()
 
@@ -60,7 +62,7 @@ final class EventTapController {
         refreshDisplays()
         NotificationCenter.default.addObserver(
             forName: NSApplication.didChangeScreenParametersNotification, object: nil, queue: .main
-        ) { [weak self] _ in self?.refreshDisplays() }
+        ) { [weak self] _ in MainActor.assumeIsolated { self?.refreshDisplays() } }
         NotificationCenter.default.addObserver(
             forName: NSApplication.willTerminateNotification, object: nil, queue: .main
         ) { _ in CGAssociateMouseAndMouseCursorPosition(1) }
@@ -78,7 +80,7 @@ final class EventTapController {
         scrollTap = sTap
 
         Timer.scheduledTimer(withTimeInterval: 0.25, repeats: true) { [weak self] _ in
-            self?.idleCheck()
+            MainActor.assumeIsolated { self?.idleCheck() }
         }
         startStatsLogging()
         return true
@@ -133,12 +135,16 @@ final class EventTapController {
 
     private func startStatsLogging() {
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
-            guard let self, self.stats.seen > 0 || self.stats.scrollRemapped > 0 else { return }
-            let s = self.stats
-            let cfg = SettingsRepository.engine.get()
-            log.notice("pointer events: seen=\(s.seen, privacy: .public) remapped=\(s.remapped, privacy: .public) skippedConfig=\(s.skippedConfig, privacy: .public) skippedNotTrackpad=\(s.skippedNotTrackpad, privacy: .public) scrollRemapped=\(s.scrollRemapped, privacy: .public) enabled=\(cfg.enabled, privacy: .public) rotation=\(cfg.transform.rotation.rawValue, privacy: .public)")
-            self.stats = Stats()
+            MainActor.assumeIsolated { self?.logStats() }
         }
+    }
+
+    private func logStats() {
+        guard stats.seen > 0 || stats.scrollRemapped > 0 else { return }
+        let s = stats
+        let cfg = SettingsRepository.engine.get()
+        log.notice("pointer events: seen=\(s.seen, privacy: .public) remapped=\(s.remapped, privacy: .public) skippedConfig=\(s.skippedConfig, privacy: .public) skippedNotTrackpad=\(s.skippedNotTrackpad, privacy: .public) scrollRemapped=\(s.scrollRemapped, privacy: .public) enabled=\(cfg.enabled, privacy: .public) rotation=\(cfg.transform.rotation.rawValue, privacy: .public)")
+        stats = Stats()
     }
 
     // MARK: - Pointer
@@ -438,5 +444,10 @@ private let rawScrollDeltaFields: [(CGEventField, CGEventField)] = [
 private func eventTapCallback(
     proxy: CGEventTapProxy, type: CGEventType, event: CGEvent, userInfo: UnsafeMutableRawPointer?
 ) -> Unmanaged<CGEvent>? {
-    EventTapController.shared.handle(type: type, event: event)
+    // The taps are on the main run loop, so this is already the main thread.
+    // CGEvent isn't Sendable, so it crosses into the closure and back by hand.
+    nonisolated(unsafe) let event = event
+    nonisolated(unsafe) var result: Unmanaged<CGEvent>?
+    MainActor.assumeIsolated { result = EventTapController.shared.handle(type: type, event: event) }
+    return result
 }

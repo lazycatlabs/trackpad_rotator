@@ -3,6 +3,7 @@ import ApplicationServices
 import IOKit.hid
 
 /// Reads and requests the macOS privacy permissions the app needs.
+@MainActor
 final class PermissionsRepository {
     static let shared = PermissionsRepository()
 
@@ -18,7 +19,8 @@ final class PermissionsRepository {
     /// Shows the system prompt when macOS still allows it. Returns whether access is granted.
     @discardableResult
     func promptAccessibility() -> Bool {
-        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        // The value of kAXTrustedCheckOptionPrompt, which Swift 6 treats as mutable global state.
+        let options = ["AXTrustedCheckOptionPrompt": true] as CFDictionary
         return AXIsProcessTrustedWithOptions(options)
     }
 

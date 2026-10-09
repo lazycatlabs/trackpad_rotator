@@ -1,18 +1,19 @@
 import Foundation
+import Observation
 
 /// Permissions, event tap and device state, polled every 2 seconds.
-final class StatusViewModel: ObservableObject {
-    @Published private(set) var accessibilityGranted = false
-    @Published private(set) var inputMonitoringGranted = false
-    @Published private(set) var tapRunning = false
-    @Published private(set) var multitouchAvailable = false
-    @Published private(set) var devices: [DeviceSnapshot] = []
+@MainActor @Observable
+final class StatusViewModel {
+    private(set) var accessibilityGranted = false
+    private(set) var inputMonitoringGranted = false
+    private(set) var tapRunning = false
+    private(set) var multitouchAvailable = false
+    private(set) var devices: [DeviceSnapshot] = []
 
     var allPermissionsGranted: Bool { accessibilityGranted && inputMonitoringGranted }
 
-    private let permissions: PermissionsRepository
-    private let trackpad: TrackpadRepository
-    private var timer: Timer?
+    @ObservationIgnored private let permissions: PermissionsRepository
+    @ObservationIgnored private let trackpad: TrackpadRepository
 
     init(permissions: PermissionsRepository = .shared, trackpad: TrackpadRepository = .shared) {
         self.permissions = permissions
@@ -26,7 +27,12 @@ final class StatusViewModel: ObservableObject {
         multitouchAvailable = trackpad.multitouchAvailable
         tick()
         // Keeps retrying until Accessibility is granted, and picks up newly paired trackpads.
-        timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.tick() }
+        Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                self?.tick()
+            }
+        }
     }
 
     /// Re-reads the permission state now instead of waiting for the next timer tick.

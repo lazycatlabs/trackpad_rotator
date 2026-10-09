@@ -6,8 +6,9 @@ import Foundation
 /// All of this is private API, looked up at runtime; when it's missing the rewrite is skipped.
 enum AttachedHIDEvent {
     private typealias Ref = AnyObject
-    private static let iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_LAZY)
-    private static let skylight = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY)
+    // Opened once and only read after that.
+    nonisolated(unsafe) private static let iokit = dlopen("/System/Library/Frameworks/IOKit.framework/IOKit", RTLD_LAZY)
+    nonisolated(unsafe) private static let skylight = dlopen("/System/Library/PrivateFrameworks/SkyLight.framework/SkyLight", RTLD_LAZY)
 
     private static let copyEvent = load(skylight, "SLEventCopyIOHIDEvent",
                                         as: (@convention(c) (CGEvent) -> Unmanaged<Ref>?).self)

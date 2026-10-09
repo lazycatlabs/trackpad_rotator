@@ -3,7 +3,7 @@ import SwiftUI
 // MARK: - Shared controls
 
 struct StatusBanner: View {
-    @EnvironmentObject var status: StatusViewModel
+    @Environment(StatusViewModel.self) private var status
 
     var body: some View {
         if !status.accessibilityGranted {
@@ -45,7 +45,7 @@ struct StatusBanner: View {
 }
 
 struct PermissionsList: View {
-    @EnvironmentObject var status: StatusViewModel
+    @Environment(StatusViewModel.self) private var status
 
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
@@ -108,9 +108,10 @@ private struct PermissionRow: View {
 }
 
 struct OrientationControls: View {
-    @EnvironmentObject var settings: SettingsViewModel
+    @Environment(SettingsViewModel.self) private var settings
 
     var body: some View {
+        @Bindable var settings = settings
         VStack(alignment: .leading, spacing: 10) {
             Picker("Orientation", selection: $settings.config.transform.rotation) {
                 ForEach(Rotation.allCases) { r in
@@ -137,9 +138,10 @@ struct OrientationControls: View {
 }
 
 struct ApplyControls: View {
-    @EnvironmentObject var settings: SettingsViewModel
+    @Environment(SettingsViewModel.self) private var settings
 
     var body: some View {
+        @Bindable var settings = settings
         VStack(alignment: .leading, spacing: 6) {
             Toggle("Remap pointer movement", isOn: $settings.config.applyToPointer)
             Toggle("Remap two‑finger scrolling", isOn: $settings.config.applyToScroll)
@@ -153,9 +155,10 @@ struct ApplyControls: View {
 }
 
 struct SpeedControls: View {
-    @EnvironmentObject var settings: SettingsViewModel
+    @Environment(SettingsViewModel.self) private var settings
 
     var body: some View {
+        @Bindable var settings = settings
         VStack(alignment: .leading, spacing: 8) {
             SpeedSlider(title: "Pointer speed", value: $settings.config.pointerSpeed)
                 .disabled(!settings.config.applyToPointer)

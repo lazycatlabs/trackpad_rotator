@@ -46,7 +46,7 @@ struct DeviceSnapshot: Identifiable {
 }
 
 /// Listens to raw finger data so we know *which* device is driving the pointer.
-final class TouchMonitor {
+final class TouchMonitor: Sendable {
     static let shared = TouchMonitor()
 
     /// How long after the last finger lifts we still treat events as coming from the
@@ -54,14 +54,12 @@ final class TouchMonitor {
     private let releaseGrace: CFAbsoluteTime = 0.12
 
     private let devices = Locked<[Int32: DeviceSnapshot]>([:])
-    private(set) var available = false
-    private var probeTimer: Timer?
+    var available: Bool { MTBAvailable() }
 
     func start() {
-        available = MTBAvailable()
         guard available else { return }
         restart()
-        probeTimer = Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
+        Timer.scheduledTimer(withTimeInterval: 3, repeats: true) { [weak self] _ in
             self?.rescanIfNeeded()
         }
     }

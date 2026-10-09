@@ -3,10 +3,11 @@ import SwiftUI
 // MARK: - Main window
 
 struct MainWindow: View {
-    @EnvironmentObject var status: StatusViewModel
-    @EnvironmentObject var settings: SettingsViewModel
+    @Environment(StatusViewModel.self) private var status
+    @Environment(SettingsViewModel.self) private var settings
 
     var body: some View {
+        @Bindable var settings = settings
         HStack(alignment: .top, spacing: 20) {
             VStack(alignment: .leading, spacing: 12) {
                 TouchPreview(transform: settings.config.transform, target: settings.config.target)

@@ -3,12 +3,13 @@ import SwiftUI
 // MARK: - Menu bar panel
 
 struct MenuPanel: View {
-    @EnvironmentObject var status: StatusViewModel
-    @EnvironmentObject var settings: SettingsViewModel
+    @Environment(StatusViewModel.self) private var status
+    @Environment(SettingsViewModel.self) private var settings
     @Environment(\.openWindow) private var openWindow
     @State private var showPermissions = false
 
     var body: some View {
+        @Bindable var settings = settings
         VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Text("Trackpad Rotator").font(.headline)

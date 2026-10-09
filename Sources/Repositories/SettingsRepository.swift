@@ -2,10 +2,11 @@ import Foundation
 import ServiceManagement
 
 /// Persists settings in UserDefaults and publishes them to the engine.
+@MainActor
 final class SettingsRepository {
     static let shared = SettingsRepository()
     /// Snapshot read by the event tap on every event.
-    static let engine = Locked(EngineConfig())
+    nonisolated static let engine = Locked(EngineConfig())
 
     private let defaults = UserDefaults.standard
 

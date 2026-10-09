@@ -139,7 +139,7 @@
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				ENABLE_TESTABILITY = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
@@ -153,7 +153,7 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_ENABLE_OBJC_ARC = YES;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				MACOSX_DEPLOYMENT_TARGET = 13.0;
+				MACOSX_DEPLOYMENT_TARGET = 14.0;
 				SDKROOT = macosx;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
@@ -170,7 +170,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = local.trackpadrotator;
 				PRODUCT_NAME = "Trackpad Rotator";
 				SWIFT_OBJC_BRIDGING_HEADER = Sources/Engine/MTBridge.h;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Debug;
 		};
@@ -184,7 +184,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = local.trackpadrotator;
 				PRODUCT_NAME = "Trackpad Rotator";
 				SWIFT_OBJC_BRIDGING_HEADER = Sources/Engine/MTBridge.h;
-				SWIFT_VERSION = 5.0;
+				SWIFT_VERSION = 6.0;
 			};
 			name = Release;
 		};
