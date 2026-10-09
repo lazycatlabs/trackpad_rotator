@@ -15,7 +15,7 @@ final class DockSwipeRewriter {
     func handle(_ event: CGEvent) {
         let motion = event.getIntegerValueField(Field.motion)
         let phase = event.getIntegerValueField(Field.phase)
-        let cfg = SettingsStore.engine.get()
+        let cfg = SettingsRepository.engine.get()
 
         if phase == 1 { // began
             transforming = cfg.enabled && cfg.dockSwipes && !cfg.transform.isIdentity

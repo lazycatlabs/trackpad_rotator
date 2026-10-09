@@ -8,13 +8,13 @@ APP="build/Trackpad Rotator.app"
 rm -rf build
 mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 
-xcrun clang -c Sources/MTBridge.c -o build/MTBridge.o -O2 \
+xcrun clang -c Sources/Engine/MTBridge.c -o build/MTBridge.o -O2 \
     -target "$ARCH-apple-macos13.0" -fobjc-arc
 
 xcrun swiftc -O -swift-version 5 \
     -target "$ARCH-apple-macos13.0" \
-    -import-objc-header Sources/MTBridge.h \
-    Sources/*.swift build/MTBridge.o \
+    -import-objc-header Sources/Engine/MTBridge.h \
+    Sources/**/*.swift build/MTBridge.o \
     -o "$APP/Contents/MacOS/TrackpadRotator"
 
 cp Info.plist "$APP/Contents/Info.plist"

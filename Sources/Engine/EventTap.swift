@@ -135,7 +135,7 @@ final class EventTapController {
         Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             guard let self, self.stats.seen > 0 || self.stats.scrollRemapped > 0 else { return }
             let s = self.stats
-            let cfg = SettingsStore.engine.get()
+            let cfg = SettingsRepository.engine.get()
             log.notice("pointer events: seen=\(s.seen, privacy: .public) remapped=\(s.remapped, privacy: .public) skippedConfig=\(s.skippedConfig, privacy: .public) skippedNotTrackpad=\(s.skippedNotTrackpad, privacy: .public) scrollRemapped=\(s.scrollRemapped, privacy: .public) enabled=\(cfg.enabled, privacy: .public) rotation=\(cfg.transform.rotation.rawValue, privacy: .public)")
             self.stats = Stats()
         }
@@ -159,7 +159,7 @@ final class EventTapController {
         let dx = event.getDoubleValueField(.mouseEventDeltaX)
         let dy = event.getDoubleValueField(.mouseEventDeltaY)
 
-        let cfg = SettingsStore.engine.get()
+        let cfg = SettingsRepository.engine.get()
         stats.seen += 1
         guard cfg.enabled, cfg.applyToPointer, !cfg.transform.isIdentity else {
             stats.skippedConfig += 1
@@ -217,7 +217,7 @@ final class EventTapController {
     /// Reattach once the trackpad has gone idle.
     private func idleCheck() {
         guard detached else { return }
-        if !TouchMonitor.shared.isTargetActive(SettingsStore.engine.get().target) { setDetached(false) }
+        if !TouchMonitor.shared.isTargetActive(SettingsRepository.engine.get().target) { setDetached(false) }
     }
 
     private func clamp(_ p: CGPoint, from prev: CGPoint) -> CGPoint {
@@ -257,7 +257,7 @@ final class EventTapController {
         log.debug("""
             scroll ended: transforming=\(self.scrollTransforming, privacy: .public) \
             suppressed=\(self.scrollSuppressed, privacy: .public) \
-            swipeNav=\(SettingsStore.engine.get().swipeNavigation, privacy: .public) \
+            swipeNav=\(SettingsRepository.engine.get().swipeNavigation, privacy: .public) \
             events=\(s.events, privacy: .public) zeroedAtStart=\(s.zeroedAtStart, privacy: .public) \
             gestures=\(s.gestures, privacy: .public) hidRewrites=\(s.hidRewrites, privacy: .public) \
             point \(v(s.pointIn), privacy: .public)->\(v(s.pointOut), privacy: .public) \
@@ -269,7 +269,7 @@ final class EventTapController {
 
     /// Returns false when the event should be dropped.
     private func handleScroll(_ event: CGEvent) -> Bool {
-        let cfg = SettingsStore.engine.get()
+        let cfg = SettingsRepository.engine.get()
         guard cfg.enabled, !cfg.transform.isIdentity else {
             scrollTransforming = false
             scrollSuppressed = false
@@ -358,7 +358,7 @@ final class EventTapController {
     /// Gesture events without a HID type carry the finger positions (what NSTouch reports).
     /// Swipe between pages follows those too, so turn them into your frame.
     private func handleTouches(_ event: CGEvent) {
-        let cfg = SettingsStore.engine.get()
+        let cfg = SettingsRepository.engine.get()
         guard cfg.enabled, cfg.swipeNavigation, !cfg.transform.isIdentity,
               TouchMonitor.shared.isTargetActive(cfg.target) else { return }
         AttachedHIDEvent.rewriteTouches(of: event, cfg.transform)
@@ -397,7 +397,7 @@ final class EventTapController {
         // The gesture's "began" reaches the session just before the scroll's, so start the
         // new gesture here rather than keep the previous one's direction.
         if event.getIntegerValueField(gesturePhaseField) == 1 {
-            let cfg = SettingsStore.engine.get()
+            let cfg = SettingsRepository.engine.get()
             let rotated = cfg.enabled && !cfg.transform.isIdentity
             scrollSuppressed = rotated && TouchMonitor.shared.isEdgeSwipeActive(cfg.target)
             scrollTransforming = rotated && cfg.applyToScroll && TouchMonitor.shared.isTargetActive(cfg.target)
@@ -406,7 +406,7 @@ final class EventTapController {
             log.debug("gesture began: transforming=\(self.scrollTransforming, privacy: .public) suppressed=\(self.scrollSuppressed, privacy: .public)")
         }
         if scrollSuppressed { return false }
-        guard scrollTransforming, SettingsStore.engine.get().swipeNavigation else { return true }
+        guard scrollTransforming, SettingsRepository.engine.get().swipeNavigation else { return true }
         summary.gestures += 1
         // Setting X and Y also updates the event's other copies of them (fields 113–117, 123, 139…).
         let gx = event.getDoubleValueField(gestureScrollXField)
