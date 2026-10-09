@@ -29,6 +29,9 @@ final class AppModel: ObservableObject {
         timer = Timer.scheduledTimer(withTimeInterval: 2, repeats: true) { [weak self] _ in self?.tick() }
     }
 
+    /// Re-reads the permission state now instead of waiting for the next timer tick.
+    func refresh() { tick() }
+
     private func tick() {
         accessibilityGranted = AXIsProcessTrusted()
         let im = IOHIDCheckAccess(kIOHIDRequestTypeListenEvent) == kIOHIDAccessTypeGranted
@@ -47,6 +50,20 @@ final class AppModel: ObservableObject {
     func rescanDevices() {
         TouchMonitor.shared.restart()
         devices = TouchMonitor.shared.snapshot()
+    }
+
+    /// Shows the system prompt when macOS still allows it, otherwise opens the settings pane.
+    func requestAccessibility() {
+        let options = [kAXTrustedCheckOptionPrompt.takeUnretainedValue() as String: true] as CFDictionary
+        if !AXIsProcessTrustedWithOptions(options) { openAccessibilitySettings() }
+        tick()
+    }
+
+    /// macOS only shows the Input Monitoring prompt once; after that the request fails
+    /// straight away and the user has to turn it on in System Settings.
+    func requestInputMonitoring() {
+        if !IOHIDRequestAccess(kIOHIDRequestTypeListenEvent) { openInputMonitoringSettings() }
+        tick()
     }
 
     func openInputMonitoringSettings() {

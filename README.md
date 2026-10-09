@@ -18,6 +18,8 @@ On first launch, grant:
 - **Accessibility**: to move the pointer and rewrite scroll events
 - **Input Monitoring**: to read finger data from the trackpad
 
+The **Permissions** section (in the menu bar panel and the settings window) shows whether each one is granted and has a **Request** button. macOS only shows each prompt once, so after that the button opens the right pane in System Settings.
+
 ## How it works
 
 - `MTBridge.c`: loads Apple's private `MultitouchSupport.framework` with `dlopen` and streams raw finger frames.

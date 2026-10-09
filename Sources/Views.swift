@@ -44,6 +44,69 @@ struct StatusBanner: View {
     }
 }
 
+struct PermissionsList: View {
+    @EnvironmentObject var model: AppModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            PermissionRow(title: "Accessibility",
+                          detail: "Moves the pointer and rewrites scroll events.",
+                          granted: model.accessibilityGranted,
+                          request: model.requestAccessibility,
+                          openSettings: model.openAccessibilitySettings)
+            PermissionRow(title: "Input Monitoring",
+                          detail: "Reads finger data from the trackpad.",
+                          granted: model.inputMonitoringGranted,
+                          request: model.requestInputMonitoring,
+                          openSettings: model.openInputMonitoringSettings)
+            HStack {
+                Text(model.accessibilityGranted && model.inputMonitoringGranted
+                     ? "All permissions granted."
+                     : "Checked automatically every 2 seconds.")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                Spacer()
+                Button("Check Again") { model.refresh() }
+                    .controlSize(.small)
+            }
+        }
+    }
+}
+
+private struct PermissionRow: View {
+    var title: String
+    var detail: String
+    var granted: Bool
+    var request: () -> Void
+    var openSettings: () -> Void
+
+    var body: some View {
+        HStack(alignment: .firstTextBaseline) {
+            Image(systemName: granted ? "checkmark.circle.fill" : "xmark.circle.fill")
+                .foregroundStyle(granted ? .green : .orange)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(title)
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            Spacer()
+            if granted {
+                Button("Settings") { openSettings() }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+                    .help("Open \(title) in System Settings")
+            } else {
+                Button("Request") { request() }
+                    .controlSize(.small)
+                    .help("Ask macOS for \(title) access, or open System Settings if it was already asked")
+            }
+        }
+        .font(.callout)
+    }
+}
+
 struct OrientationControls: View {
     @EnvironmentObject var store: SettingsStore
 
@@ -145,6 +208,7 @@ struct MenuPanel: View {
     @EnvironmentObject var model: AppModel
     @EnvironmentObject var store: SettingsStore
     @Environment(\.openWindow) private var openWindow
+    @State private var showPermissions = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -160,6 +224,13 @@ struct MenuPanel: View {
             Divider()
             ApplyControls()
             SpeedControls()
+            Divider()
+            DisclosureGroup(isExpanded: $showPermissions) {
+                PermissionsList().padding(.top, 6)
+            } label: {
+                Label("Permissions", systemImage: model.accessibilityGranted && model.inputMonitoringGranted
+                      ? "checkmark.shield" : "exclamationmark.shield")
+            }
             Divider()
             HStack {
                 Button("Touch Preview & Settings…") {
@@ -225,6 +296,9 @@ struct MainWindow: View {
                 }
                 GroupBox("Speed") {
                     SpeedControls().padding(6)
+                }
+                GroupBox("Permissions") {
+                    PermissionsList().padding(6)
                 }
                 GroupBox("Detected devices") {
                     VStack(alignment: .leading, spacing: 4) {
