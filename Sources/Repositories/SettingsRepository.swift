@@ -12,7 +12,19 @@ final class SettingsRepository {
 
     private init() {}
 
+    /// Copies settings saved under the old bundle identifier, once, so upgrading keeps them.
+    private func migrateFromOldIdentifier() {
+        guard defaults.object(forKey: "enabled") == nil,
+              let old = defaults.persistentDomain(forName: "local.trackpadrotator") else { return }
+        let keys = ["enabled", "rotation", "swapXY", "invertX", "invertY", "applyToPointer", "applyToScroll",
+                    "swipeNavigation", "notificationCenterSwipe", "dockSwipes", "target", "pointerSpeed", "scrollSpeed"]
+        for key in keys {
+            if let value = old[key] { defaults.set(value, forKey: key) }
+        }
+    }
+
     func load() -> EngineConfig {
+        migrateFromOldIdentifier()
         var c = EngineConfig()
         let d = defaults
         if d.object(forKey: "enabled") != nil { c.enabled = d.bool(forKey: "enabled") }
