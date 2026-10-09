@@ -61,7 +61,7 @@ Requires macOS 14 Sonoma or later.
 brew install --cask lazycatlabs/tap/trackpad-rotator
 ```
 
-**Or download the zip** from [Releases](https://github.com/lazycatlabs/trackpad_rotator/releases/latest), unzip it and drag **Trackpad Rotator** to Applications.
+**Or download the DMG** from [Releases](https://github.com/lazycatlabs/trackpad_rotator/releases/latest), open it and drag **Trackpad Rotator** to Applications. A zip of the same app is there too.
 
 > [!NOTE]
 > **First launch.** Trackpad Rotator isn't notarized yet, so macOS blocks it the first time:
