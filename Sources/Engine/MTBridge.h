@@ -1,6 +1,7 @@
 // Thin C bridge over Apple's private MultitouchSupport.framework.
 // Loaded with dlopen at runtime so the app still launches if it's missing.
-#pragma once
+#ifndef MTBRIDGE_H
+#define MTBRIDGE_H
 #include <stdbool.h>
 #include <stdint.h>
 
@@ -32,3 +33,5 @@ int32_t MTBDeviceCount(void);
 /// Fresh enumeration, used to detect devices being connected/disconnected.
 int32_t MTBProbeDeviceCount(void);
 bool MTBGetDeviceInfo(int32_t index, MTBDeviceInfo *out);
+
+#endif
