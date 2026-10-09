@@ -167,7 +167,7 @@
 				DEVELOPMENT_TEAM = 28B2PJAQYA;
 				EXECUTABLE_NAME = TrackpadRotator;
 				INFOPLIST_FILE = Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = local.trackpadrotator;
+				PRODUCT_BUNDLE_IDENTIFIER = lazycatlabs.trackpadrotator;
 				PRODUCT_NAME = "Trackpad Rotator";
 				SWIFT_OBJC_BRIDGING_HEADER = Sources/Engine/MTBridge.h;
 				SWIFT_VERSION = 6.0;
@@ -181,7 +181,7 @@
 				DEVELOPMENT_TEAM = 28B2PJAQYA;
 				EXECUTABLE_NAME = TrackpadRotator;
 				INFOPLIST_FILE = Info.plist;
-				PRODUCT_BUNDLE_IDENTIFIER = local.trackpadrotator;
+				PRODUCT_BUNDLE_IDENTIFIER = lazycatlabs.trackpadrotator;
 				PRODUCT_NAME = "Trackpad Rotator";
 				SWIFT_OBJC_BRIDGING_HEADER = Sources/Engine/MTBridge.h;
 				SWIFT_VERSION = 6.0;
