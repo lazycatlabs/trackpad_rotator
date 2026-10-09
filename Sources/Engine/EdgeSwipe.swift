@@ -2,7 +2,7 @@ import AppKit
 import ApplicationServices
 import os
 
-private let log = Logger(subsystem: "local.trackpadrotator", category: "edge")
+private let log = Logger(subsystem: "lazycatlabs.trackpadrotator", category: "edge")
 
 /// Recognises "swipe left from the right edge with two fingers" (Notification Center) in your frame.
 ///

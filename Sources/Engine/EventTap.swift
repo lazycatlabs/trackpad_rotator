@@ -2,7 +2,7 @@ import AppKit
 import CoreGraphics
 import os
 
-private let log = Logger(subsystem: "local.trackpadrotator", category: "pointer")
+private let log = Logger(subsystem: "lazycatlabs.trackpadrotator", category: "pointer")
 
 /// Tracks the direction of finger travel from raw multitouch data.
 ///
