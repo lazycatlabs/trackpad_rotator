@@ -86,16 +86,12 @@ struct MainWindow: View {
                     .font(.caption2)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
-                Text("v\(appVersion)")
-                    .font(.caption2)
-                    .foregroundStyle(.tertiary)
+                GroupBox("About") {
+                    AboutSection()
+                }
             }
             .frame(width: 320)
         }
         .padding(20)
     }
-}
-
-private var appVersion: String {
-    Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "?"
 }
