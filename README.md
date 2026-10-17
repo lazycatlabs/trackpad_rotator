@@ -10,6 +10,7 @@ Use a Magic Trackpad turned 90°, 180° or 270°, and the pointer, scrolling and
 A native macOS menu bar app, built with SwiftUI.
 
 [![Latest release](https://img.shields.io/github/v/release/lazycatlabs/trackpad_rotator?label=release&color=0A84FF)](https://github.com/lazycatlabs/trackpad_rotator/releases/latest)
+[![Downloads](https://img.shields.io/github/downloads/lazycatlabs/trackpad_rotator/total?label=downloads&color=34C759)](https://github.com/lazycatlabs/trackpad_rotator/releases)
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-111111?logo=apple)
 ![Swift 6](https://img.shields.io/badge/Swift-6-F05138?logo=swift&logoColor=white)
 ![SwiftUI + Observation](https://img.shields.io/badge/SwiftUI-Observation-0A84FF)
