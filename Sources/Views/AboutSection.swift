@@ -6,24 +6,22 @@ let appVersion = Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionS
 
 private let supportEmail = "admin@lazycatlabs.com"
 private let website = URL(string: "https://trackpadrotator.lazycatlabs.com/")!
-private let releasesAPI = URL(string: "https://api.github.com/repos/lazycatlabs/trackpad_rotator/releases?per_page=20")!
+private let releasesAPI = "https://api.github.com/repos/lazycatlabs/trackpad_rotator/releases"
 
-struct Release: Decodable, Identifiable {
+struct Release: Decodable {
     let tag_name: String
-    let name: String?
     let body: String?
     let html_url: URL
-    let draft: Bool
-    let prerelease: Bool
 
-    var id: String { tag_name }
-    var version: String { tag_name.hasPrefix("v") ? String(tag_name.dropFirst()) : tag_name }
+    var version: String { String(tag_name.dropFirst()) }
+    /// Only `vX.Y.Z` tags count; `v2.0.0-beta` and the like are never offered.
+    var isStable: Bool { tag_name.wholeMatch(of: /v\d+\.\d+\.\d+/) != nil }
     func isNewer(than other: String) -> Bool {
         version.compare(other, options: .numeric) == .orderedDescending
     }
 }
 
-/// Reads GitHub Releases: the newest one is the update, the one matching this build is "What's New".
+/// Reads GitHub Releases: the latest one is the update, the one tagged with this build is "What's New".
 @MainActor @Observable
 final class UpdateChecker {
     enum State: Equatable { case idle, checking, upToDate, failed }
@@ -37,15 +35,26 @@ final class UpdateChecker {
     func check() async {
         state = .checking
         do {
-            var request = URLRequest(url: releasesAPI)
-            request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
-            let (data, _) = try await URLSession.shared.data(for: request)
-            let releases = try JSONDecoder().decode([Release].self, from: data).filter { !$0.draft && !$0.prerelease }
-            latest = releases.max { $1.isNewer(than: $0.version) }
-            current = releases.first { $0.version == appVersion }
+            // releases/latest already skips drafts and pre-releases, so no paging is needed.
+            async let latest = fetch("latest")
+            async let current = fetch("tags/v\(appVersion)")
+            self.latest = try await latest.flatMap { $0.isStable ? $0 : nil }
+            self.current = try await current
             state = .upToDate
         } catch {
             state = .failed
+        }
+    }
+
+    /// The release at `releases/<path>`, or nil when GitHub has none (404).
+    private func fetch(_ path: String) async throws -> Release? {
+        var request = URLRequest(url: URL(string: "\(releasesAPI)/\(path)")!)
+        request.setValue("application/vnd.github+json", forHTTPHeaderField: "Accept")
+        let (data, response) = try await URLSession.shared.data(for: request)
+        switch (response as? HTTPURLResponse)?.statusCode {
+        case 200: return try JSONDecoder().decode(Release.self, from: data)
+        case 404: return nil
+        default: throw URLError(.badServerResponse)
         }
     }
 }
