@@ -311,6 +311,9 @@ final class EventTapController {
         // Axis2 is horizontal, Axis1 vertical, both positive toward right/down finger travel.
         let sign = naturalScrolling ? 1.0 : -1.0
         scrollVector = dir.map(snapToAxis).map { ($0.x * cfg.scrollSpeed * sign, $0.y * cfg.scrollSpeed * sign) }
+        let ph = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
+        let pv = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
+        if scrollVector == nil { scrollVector = driverVector(ph, pv, cfg) }
 
         // Read every delta before writing any: setting the line delta also overwrites the
         // fixed-point and point deltas, so it has to be written first.
@@ -318,8 +321,6 @@ final class EventTapController {
                         Double(event.getIntegerValueField(.scrollWheelEventDeltaAxis1)))
         let f = rewrite(event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis2),
                         event.getDoubleValueField(.scrollWheelEventFixedPtDeltaAxis1))
-        let ph = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis2))
-        let pv = Double(event.getIntegerValueField(.scrollWheelEventPointDeltaAxis1))
         let p = rewrite(ph, pv)
         if momentum == 0 {
             summary.events += 1
@@ -354,9 +355,21 @@ final class EventTapController {
         return true
     }
 
+    /// Until the fingers' direction is known, the driver's own delta turned into your frame.
+    /// A gesture must not start with zero movement: AppKit decides on its first events whether
+    /// a scroll view pinned at an edge bounces, and with nothing to go on it doesn't.
+    /// `h`/`v` follow the point deltas' convention (natural scrolling already applied).
+    private func driverVector(_ h: Double, _ v: Double, _ cfg: EngineConfig) -> (x: Double, y: Double)? {
+        let t = cfg.transform.apply(h, v)
+        let m = hypot(t.x, t.y)
+        guard m > 0 else { return nil }
+        let d = snapToAxis((t.x / m, t.y / m))
+        return (d.x * cfg.scrollSpeed, d.y * cfg.scrollSpeed)
+    }
+
     /// Applies `scrollVector` to a delta; only the delta's magnitude is kept.
     private func rewrite(_ h: Double, _ v: Double) -> (x: Double, y: Double) {
-        guard let vec = scrollVector else { return (0, 0) } // hold still until the direction is known
+        guard let vec = scrollVector else { return (0, 0) } // no movement to go on yet
         let m = hypot(h, v)
         return (vec.x * m, vec.y * m)
     }
@@ -417,6 +430,7 @@ final class EventTapController {
         // Setting X and Y also updates the event's other copies of them (fields 113–117, 123, 139…).
         let gx = event.getDoubleValueField(gestureScrollXField)
         let gy = event.getDoubleValueField(gestureScrollYField)
+        if scrollVector == nil { scrollVector = driverVector(gx, gy, SettingsRepository.engine.get()) }
         let g = rewrite(gx, gy)
         event.setDoubleValueField(gestureScrollXField, value: g.x)
         event.setDoubleValueField(gestureScrollYField, value: g.y)
