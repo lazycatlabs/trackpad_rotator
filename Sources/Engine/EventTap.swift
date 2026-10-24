@@ -310,7 +310,7 @@ final class EventTapController {
         // With natural scrolling the content follows the fingers; otherwise it's reversed.
         // Axis2 is horizontal, Axis1 vertical, both positive toward right/down finger travel.
         let sign = naturalScrolling ? 1.0 : -1.0
-        scrollVector = dir.map { ($0.x * cfg.scrollSpeed * sign, $0.y * cfg.scrollSpeed * sign) }
+        scrollVector = dir.map(snapToAxis).map { ($0.x * cfg.scrollSpeed * sign, $0.y * cfg.scrollSpeed * sign) }
 
         // Read every delta before writing any: setting the line delta also overwrites the
         // fixed-point and point deltas, so it has to be written first.
@@ -423,6 +423,17 @@ final class EventTapController {
         rewriteAttachedHID(event, reference: (gx, gy))
         return true
     }
+}
+
+/// The driver rails near-straight scrolls onto one axis; scroll views that lock to the
+/// predominant axis (NSScrollView, Chromium) rely on that, so a slightly diagonal sideways
+/// swipe would otherwise lock vertical and never scroll a horizontal view. Do the same:
+/// within ~27° of an axis, drop the other component.
+private func snapToAxis(_ d: (x: Double, y: Double)) -> (x: Double, y: Double) {
+    let ax = abs(d.x), ay = abs(d.y)
+    if ay <= ax * 0.5 { return (d.x < 0 ? -1 : 1, 0) }
+    if ax <= ay * 0.5 { return (0, d.y < 0 ? -1 : 1) }
+    return d
 }
 
 // Undocumented gesture event (NSEventTypeGesture) and its fields.
