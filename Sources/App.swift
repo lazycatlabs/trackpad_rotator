@@ -7,7 +7,7 @@ struct TrackpadRotatorApp: App {
 
     var body: some Scene {
         MenuBarExtra {
-            MenuPanel()
+            MenuBarPage()
                 .environment(status)
                 .environment(settings)
         } label: {
@@ -16,7 +16,7 @@ struct TrackpadRotatorApp: App {
         .menuBarExtraStyle(.window)
 
         Window("Trackpad Rotator", id: "main") {
-            MainWindow()
+            MainPage()
                 .environment(status)
                 .environment(settings)
         }
