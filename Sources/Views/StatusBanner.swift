@@ -6,17 +6,17 @@ struct StatusBanner: View {
 
     var body: some View {
         if !status.accessibilityGranted {
-            Warning(title: "Accessibility permission needed",
+            Warning(identifier: "statusBanner.accessibility",
+                    title: "Accessibility permission needed",
                     detail: "Turn on Trackpad Rotator in System Settings → Privacy & Security → Accessibility so it can remap the pointer.",
                     action: "Open Accessibility Settings",
                     open: status.openAccessibilitySettings)
-                .accessibilityIdentifier("statusBanner.accessibility")
         } else if !status.inputMonitoringGranted {
-            Warning(title: "Input Monitoring permission needed",
+            Warning(identifier: "statusBanner.inputMonitoring",
+                    title: "Input Monitoring permission needed",
                     detail: "Turn on Trackpad Rotator in System Settings → Privacy & Security → Input Monitoring so it can tell when your fingers are on the Magic Trackpad.",
                     action: "Open Input Monitoring Settings",
                     open: status.openInputMonitoringSettings)
-                .accessibilityIdentifier("statusBanner.inputMonitoring")
         } else if !status.multitouchAvailable {
             Label("Multitouch framework unavailable: can't tell trackpad from mouse.", systemImage: "xmark.octagon")
                 .font(.caption)
@@ -27,6 +27,7 @@ struct StatusBanner: View {
 }
 
 private struct Warning: View {
+    var identifier: String
     var title: LocalizedStringKey
     var detail: LocalizedStringKey
     var action: LocalizedStringKey
@@ -43,6 +44,7 @@ private struct Warning: View {
                 .fixedSize(horizontal: false, vertical: true)
             Button(action, action: open)
                 .controlSize(.small)
+                .accessibilityIdentifier("\(identifier).open")
         }
         .padding(Spacing.lg)
         .frame(maxWidth: .infinity, alignment: .leading)

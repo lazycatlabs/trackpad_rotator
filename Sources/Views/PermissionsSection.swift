@@ -5,18 +5,18 @@ struct PermissionsSection: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.sm) {
-            Item(title: "Accessibility",
+            Item(identifier: "permissions.accessibility",
+                 title: "Accessibility",
                  detail: "Moves the pointer and rewrites scroll events.",
                  granted: status.accessibilityGranted,
                  request: status.requestAccessibility,
                  openSettings: status.openAccessibilitySettings)
-                .accessibilityIdentifier("permissions.accessibility")
-            Item(title: "Input Monitoring",
+            Item(identifier: "permissions.inputMonitoring",
+                 title: "Input Monitoring",
                  detail: "Reads finger data from the trackpad.",
                  granted: status.inputMonitoringGranted,
                  request: status.requestInputMonitoring,
                  openSettings: status.openInputMonitoringSettings)
-                .accessibilityIdentifier("permissions.inputMonitoring")
             HStack {
                 Text(status.allPermissionsGranted
                      ? "All permissions granted."

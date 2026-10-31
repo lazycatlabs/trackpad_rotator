@@ -32,7 +32,7 @@ extension MainPage {
                     .foregroundStyle(matches ? .green : .secondary)
                 Text(device.name)
                 Spacer()
-                if device.info.width > 0 {
+                if device.info.width > 0, device.info.height > 0 {
                     Text(String(format: "%.0f×%.0f mm", device.widthMM, device.heightMM))
                         .foregroundStyle(.secondary)
                 }

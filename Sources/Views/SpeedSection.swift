@@ -6,12 +6,10 @@ struct SpeedSection: View {
     var body: some View {
         @Bindable var settings = settings
         VStack(alignment: .leading, spacing: Spacing.md) {
-            SpeedSlider(title: "Pointer speed", value: $settings.config.pointerSpeed)
+            SpeedSlider(identifier: "speed.pointer", title: "Pointer speed", value: $settings.config.pointerSpeed)
                 .disabled(!settings.config.applyToPointer)
-                .accessibilityIdentifier("speed.pointer")
-            SpeedSlider(title: "Scroll speed", value: $settings.config.scrollSpeed)
+            SpeedSlider(identifier: "speed.scroll", title: "Scroll speed", value: $settings.config.scrollSpeed)
                 .disabled(!settings.config.applyToScroll)
-                .accessibilityIdentifier("speed.scroll")
             Text("Applied on top of the Tracking speed in System Settings → Trackpad.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)
@@ -21,6 +19,7 @@ struct SpeedSection: View {
 }
 
 private struct SpeedSlider: View {
+    var identifier: String
     var title: LocalizedStringKey
     @Binding var value: Double
 
@@ -29,26 +28,28 @@ private struct SpeedSlider: View {
             HStack {
                 Text(title)
                 Spacer()
-                Text(String(format: "%.2g×", value))
+                Text("\(value.formatted(.number.precision(.fractionLength(0...2))))×")
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
                 Button {
                     value = 1
                 } label: {
-                    Image(systemName: "arrow.counterclockwise")
+                    Label("Reset to 1×", systemImage: "arrow.counterclockwise").labelStyle(.iconOnly)
                 }
                 .buttonStyle(.borderless)
                 .help("Reset to 1×")
                 .opacity(value == 1 ? 0 : 1)
+                .accessibilityIdentifier("\(identifier).reset")
             }
             Slider(value: $value, in: Metrics.Speed.range, step: Metrics.Speed.step) {
-                EmptyView()
+                Text(title)
             } minimumValueLabel: {
                 Image(systemName: "tortoise").font(.caption)
             } maximumValueLabel: {
                 Image(systemName: "hare").font(.caption)
             }
             .labelsHidden()
+            .accessibilityIdentifier("\(identifier).slider")
         }
     }
 }

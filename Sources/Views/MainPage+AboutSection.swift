@@ -22,8 +22,11 @@ extension MainPage {
                 Divider()
                 HStack {
                     Button("Feedback", systemImage: "bubble.left") { mail("Trackpad Rotator Feedback") }
+                        .accessibilityIdentifier("about.feedback")
                     Button("Report Bug", systemImage: "ladybug") { mail("Trackpad Rotator Bug Report", body: bugTemplate) }
+                        .accessibilityIdentifier("about.reportBug")
                     Button("Website", systemImage: "globe") { NSWorkspace.shared.open(website) }
+                        .accessibilityIdentifier("about.website")
                 }
                 .controlSize(.small)
             }
@@ -42,6 +45,7 @@ extension MainPage {
                         .foregroundStyle(.blue)
                     Spacer()
                     Link(destination: latest.html_url) { Label("Download", systemImage: "arrow.down.circle") }
+                        .accessibilityIdentifier("about.download")
                 } else {
                     Group {
                         switch updates.state {

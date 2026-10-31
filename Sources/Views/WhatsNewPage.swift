@@ -27,6 +27,7 @@ struct WhatsNewPage: View {
             HStack {
                 if updates.updateAvailable, let latest = updates.latest {
                     Link(destination: latest.html_url) { Label("Download v\(latest.version)", systemImage: "arrow.down.circle") }
+                        .accessibilityIdentifier("whatsNew.download")
                 }
                 Spacer()
                 Button("Close", systemImage: "xmark") { dismiss() }
