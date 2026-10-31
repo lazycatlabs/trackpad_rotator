@@ -39,6 +39,8 @@ final class SettingsRepository {
             c.notificationCenterSwipe = d.bool(forKey: "notificationCenterSwipe")
         }
         if d.object(forKey: "dockSwipes") != nil { c.dockSwipes = d.bool(forKey: "dockSwipes") }
+        c.edgeSlidersBuiltIn = d.bool(forKey: "edgeSlidersBuiltIn")
+        c.edgeSlidersExternal = d.bool(forKey: "edgeSlidersExternal")
         c.target = DeviceTarget(rawValue: d.integer(forKey: "target")) ?? .externalTrackpads
         if d.object(forKey: "pointerSpeed") != nil { c.pointerSpeed = d.double(forKey: "pointerSpeed") }
         if d.object(forKey: "scrollSpeed") != nil { c.scrollSpeed = d.double(forKey: "scrollSpeed") }
@@ -57,6 +59,8 @@ final class SettingsRepository {
         defaults.set(config.swipeNavigation, forKey: "swipeNavigation")
         defaults.set(config.notificationCenterSwipe, forKey: "notificationCenterSwipe")
         defaults.set(config.dockSwipes, forKey: "dockSwipes")
+        defaults.set(config.edgeSlidersBuiltIn, forKey: "edgeSlidersBuiltIn")
+        defaults.set(config.edgeSlidersExternal, forKey: "edgeSlidersExternal")
         defaults.set(config.target.rawValue, forKey: "target")
         defaults.set(config.pointerSpeed, forKey: "pointerSpeed")
         defaults.set(config.scrollSpeed, forKey: "scrollSpeed")

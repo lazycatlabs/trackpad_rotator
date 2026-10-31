@@ -24,6 +24,11 @@ struct MenuBarPage: View {
             ApplySection()
             SpeedSection()
             Divider()
+            VStack(alignment: .leading, spacing: Spacing.sm) {
+                Text("Volume & brightness").font(.subheadline.weight(.semibold))
+                EdgeSliderSection()
+            }
+            Divider()
             DisclosureGroup(isExpanded: $showPermissions) {
                 PermissionsSection().padding(.top, Spacing.sm)
             } label: {

@@ -82,6 +82,9 @@ struct EngineConfig: Equatable {
     var notificationCenterSwipe = true
     /// Turn three- and four-finger swipes; System Settings still decides what they do.
     var dockSwipes = true
+    /// One finger up or down along your left edge sets brightness, along your right edge volume.
+    var edgeSlidersBuiltIn = false
+    var edgeSlidersExternal = false
     var target: DeviceTarget = .externalTrackpads
     /// Multipliers on top of macOS's own tracking/scroll speed.
     var pointerSpeed = 1.0

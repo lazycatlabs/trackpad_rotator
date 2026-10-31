@@ -21,6 +21,7 @@ struct DeviceSnapshot: Identifiable {
     var lastCentroid: (x: Double, y: Double)?
     var lastFingerIDs: Set<Int32> = []
     var edgeSwipe = EdgeSwipeTracker()
+    var edgeSlider = EdgeSliderTracker()
 
     var widthMM: Double { Double(info.width) / 100 }
     var heightMM: Double { Double(info.height) / 100 }
@@ -97,8 +98,8 @@ final class TouchMonitor: Sendable {
         let now = CFAbsoluteTimeGetCurrent()
         let cfg = SettingsRepository.engine.get()
         let edgeSwipeOn = cfg.enabled && cfg.notificationCenterSwipe && !cfg.transform.isIdentity
-        let openNotificationCenter = devices.mutate { map -> Bool in
-            guard var d = map[index] else { return false }
+        let (openNotificationCenter, slide) = devices.mutate { map -> (Bool, (EdgeSliderTracker.Control, Int)?) in
+            guard var d = map[index] else { return (false, nil) }
             d.touches = points
             let touching = points.filter(\.isTouching)
             if !touching.isEmpty { d.lastTouch = now }
@@ -126,17 +127,35 @@ final class TouchMonitor: Sendable {
             } else {
                 d.edgeSwipe = EdgeSwipeTracker()
             }
+
+            var slide: (EdgeSliderTracker.Control, Int)?
+            if cfg.enabled, d.isTrackpad, d.info.builtIn ? cfg.edgeSlidersBuiltIn : cfg.edgeSlidersExternal {
+                // Only the trackpads being remapped are turned; the others sit the usual way.
+                let transform = d.matches(cfg.target) ? cfg.transform : AxisTransform()
+                slide = d.edgeSlider.update(touching: touching, widthMM: d.widthMM, heightMM: d.heightMM,
+                                            transform: transform)
+            } else {
+                d.edgeSlider = EdgeSliderTracker()
+            }
             map[index] = d
-            return fired
+            return (fired, slide)
         }
         if openNotificationCenter {
             DispatchQueue.main.async { NotificationCenterUI.open() }
+        }
+        if let (control, steps) = slide {
+            DispatchQueue.main.async { MediaKeys.adjust(control, steps: steps) }
         }
     }
 
     /// True while fingers that came down at your right edge are on a device matching `target`.
     func isEdgeSwipeActive(_ target: DeviceTarget) -> Bool {
         devices.mutate { map in map.values.contains { $0.matches(target) && $0.edgeSwipe.active } }
+    }
+
+    /// True while a finger is sliding along an edge for volume or brightness, on any device.
+    var isEdgeSlideActive: Bool {
+        devices.mutate { map in map.values.contains { $0.edgeSlider.active != nil } }
     }
 
     /// True while a finger is on (or just left) a device matching `target`.

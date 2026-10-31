@@ -36,6 +36,7 @@ struct MainPage: View {
             GroupBox("Orientation") { OrientationSection().padding(Spacing.sm) }
             GroupBox("Apply to") { TargetSection().padding(Spacing.sm) }
             GroupBox("Speed") { SpeedSection().padding(Spacing.sm) }
+            GroupBox("Volume & brightness") { EdgeSliderSection().padding(Spacing.sm) }
             GroupBox("Permissions") { PermissionsSection().padding(Spacing.sm) }
             GroupBox("Detected devices") { DevicesSection().padding(Spacing.sm) }
             Toggle("Launch at login", isOn: $settings.launchAtLogin)

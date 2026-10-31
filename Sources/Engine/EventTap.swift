@@ -121,6 +121,8 @@ final class EventTapController {
         case .scrollWheel:
             if !handleScroll(event) { return nil }
         case .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged:
+            // A finger sliding along an edge sets volume or brightness; the pointer stays put.
+            if TouchMonitor.shared.isEdgeSlideActive { return nil }
             handlePointer(event)
         default:
             break
