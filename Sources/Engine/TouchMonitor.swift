@@ -144,7 +144,7 @@ final class TouchMonitor: Sendable {
             DispatchQueue.main.async { NotificationCenterUI.open() }
         }
         if let (control, steps) = slide {
-            DispatchQueue.main.async { MediaKeys.adjust(control, steps: steps) }
+            DispatchQueue.main.async { MediaKeys.adjust(control, steps: steps, haptic: cfg.edgeSliderHaptics) }
         }
     }
 

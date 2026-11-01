@@ -65,7 +65,7 @@ enum MediaKeys {
     // NX_KEYTYPE_* from IOKit's ev_keymap.h.
     private static let soundUp = 0, soundDown = 1, brightnessUp = 2, brightnessDown = 3
 
-    static func adjust(_ control: EdgeSliderTracker.Control, steps: Int) {
+    static func adjust(_ control: EdgeSliderTracker.Control, steps: Int, haptic: Bool) {
         let key = switch control {
         case .volume: steps > 0 ? soundUp : soundDown
         case .brightness: steps > 0 ? brightnessUp : brightnessDown
@@ -73,9 +73,9 @@ enum MediaKeys {
         for _ in 0..<abs(steps) {
             post(key, down: true)
             post(key, down: false)
+            // A tick on Force Touch trackpads, so each step can be felt.
+            if haptic { NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now) }
         }
-        // A tick on Force Touch trackpads, so each step can be felt.
-        NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
     }
 
     private static func post(_ key: Int, down: Bool) {

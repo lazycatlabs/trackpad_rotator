@@ -14,6 +14,10 @@ struct EdgeSliderSection: View {
                     .accessibilityIdentifier("edgeSliders.external")
             }
             .toggleStyle(.checkbox)
+            Toggle("Haptic feedback on each step", isOn: $settings.config.edgeSliderHaptics)
+                .toggleStyle(.checkbox)
+                .disabled(!settings.config.edgeSlidersBuiltIn && !settings.config.edgeSlidersExternal)
+                .accessibilityIdentifier("edgeSliders.haptics")
             Text("Slide one finger up or down along your left edge for brightness, or your right edge for volume.")
                 .font(.caption2)
                 .foregroundStyle(.secondary)

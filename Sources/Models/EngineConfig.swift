@@ -85,6 +85,8 @@ struct EngineConfig: Equatable {
     /// One finger up or down along your left edge sets brightness, along your right edge volume.
     var edgeSlidersBuiltIn = false
     var edgeSlidersExternal = false
+    /// A haptic tick on each step, on trackpads that have Force Touch.
+    var edgeSliderHaptics = true
     var target: DeviceTarget = .externalTrackpads
     /// Multipliers on top of macOS's own tracking/scroll speed.
     var pointerSpeed = 1.0
