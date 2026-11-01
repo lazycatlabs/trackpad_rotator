@@ -115,6 +115,7 @@ final class EventTapController {
         }
         switch type {
         case .tapDisabledByTimeout, .tapDisabledByUserInput:
+            log.notice("event tap disabled (\(type == .tapDisabledByTimeout ? "timeout" : "user input", privacy: .public)), re-enabling")
             for tap in [pointerTap, scrollTap].compactMap({ $0 }) where !CGEvent.tapIsEnabled(tap: tap) {
                 CGEvent.tapEnable(tap: tap, enable: true)
             }
@@ -122,7 +123,11 @@ final class EventTapController {
             if !handleScroll(event) { return nil }
         case .mouseMoved, .leftMouseDragged, .rightMouseDragged, .otherMouseDragged:
             // A finger sliding along an edge sets volume or brightness; the pointer stays put.
-            if TouchMonitor.shared.isEdgeSlideActive { return nil }
+            if TouchMonitor.shared.isEdgeSlideActive {
+                holdPointer()
+                return nil
+            }
+            heldAt = nil
             handlePointer(event)
         default:
             break
@@ -132,7 +137,7 @@ final class EventTapController {
 
     // MARK: - Diagnostics
 
-    struct Stats { var seen = 0, remapped = 0, skippedConfig = 0, skippedNotTrackpad = 0, scrollRemapped = 0 }
+    struct Stats { var seen = 0, remapped = 0, skippedConfig = 0, skippedNotTrackpad = 0, scrollRemapped = 0, held = 0 }
     private var stats = Stats()
 
     private func startStatsLogging() {
@@ -142,10 +147,10 @@ final class EventTapController {
     }
 
     private func logStats() {
-        guard stats.seen > 0 || stats.scrollRemapped > 0 else { return }
+        guard stats.seen > 0 || stats.scrollRemapped > 0 || stats.held > 0 else { return }
         let s = stats
         let cfg = SettingsRepository.engine.get()
-        log.notice("pointer events: seen=\(s.seen, privacy: .public) remapped=\(s.remapped, privacy: .public) skippedConfig=\(s.skippedConfig, privacy: .public) skippedNotTrackpad=\(s.skippedNotTrackpad, privacy: .public) scrollRemapped=\(s.scrollRemapped, privacy: .public) enabled=\(cfg.enabled, privacy: .public) rotation=\(cfg.transform.rotation.rawValue, privacy: .public)")
+        log.notice("pointer events: seen=\(s.seen, privacy: .public) remapped=\(s.remapped, privacy: .public) skippedConfig=\(s.skippedConfig, privacy: .public) skippedNotTrackpad=\(s.skippedNotTrackpad, privacy: .public) scrollRemapped=\(s.scrollRemapped, privacy: .public) held=\(s.held, privacy: .public) enabled=\(cfg.enabled, privacy: .public) rotation=\(cfg.transform.rotation.rawValue, privacy: .public)")
         stats = Stats()
     }
 
@@ -157,6 +162,24 @@ final class EventTapController {
     private var pointerDirection = DirectionTracker()
     /// While true we've asked macOS to stop moving the cursor with the hardware.
     private var detached = false
+
+    /// Where the cursor is kept while a finger slides along an edge.
+    private var heldAt: CGPoint?
+
+    /// Keeps the cursor still: dropping the event isn't enough while the cursor still follows
+    /// the hardware, so detach it and put it back.
+    private func holdPointer() {
+        stats.held += 1
+        let now = CFAbsoluteTimeGetCurrent()
+        let recent = now - lastTargetTime < 0.3 ? lastTarget : nil
+        let p = heldAt ?? recent ?? CGEvent(source: nil)?.location ?? .zero
+        heldAt = p
+        lastTarget = p
+        lastTargetTime = now
+        _ = TouchMonitor.shared.consumeMotion(SettingsRepository.engine.get().target) // the slide isn't a move
+        setDetached(true)
+        CGWarpMouseCursorPosition(p)
+    }
 
     private func setDetached(_ value: Bool) {
         CGAssociateMouseAndMouseCursorPosition(value ? 0 : 1)
