@@ -2,7 +2,7 @@ import AppKit
 
 /// Recognises "one finger slides up or down along your left or right edge": brightness on the
 /// left, volume on the right. Each step is one press of the matching media key, so macOS shows
-/// its own volume and brightness HUD.
+/// its own volume and brightness HUD, and a haptic tick.
 struct EdgeSliderTracker {
     enum Control { case brightness, volume }
 
@@ -74,6 +74,8 @@ enum MediaKeys {
             post(key, down: true)
             post(key, down: false)
         }
+        // A tick on Force Touch trackpads, so each step can be felt.
+        NSHapticFeedbackManager.defaultPerformer.perform(.levelChange, performanceTime: .now)
     }
 
     private static func post(_ key: Int, down: Bool) {
