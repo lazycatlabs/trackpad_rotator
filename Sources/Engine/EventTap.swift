@@ -127,7 +127,10 @@ final class EventTapController {
                 holdPointer()
                 return nil
             }
-            heldAt = nil
+            if heldAt != nil { // the slide ended: its last bit of travel isn't a move either
+                _ = TouchMonitor.shared.consumeMotion(SettingsRepository.engine.get().target)
+                heldAt = nil
+            }
             handlePointer(event)
         default:
             break
@@ -165,13 +168,16 @@ final class EventTapController {
 
     /// Where the cursor is kept while a finger slides along an edge.
     private var heldAt: CGPoint?
+    /// Where the cursor was when the current move began.
+    private var moveStart: CGPoint?
 
     /// Keeps the cursor still: dropping the event isn't enough while the cursor still follows
     /// the hardware, so detach it and put it back.
     private func holdPointer() {
         stats.held += 1
         let now = CFAbsoluteTimeGetCurrent()
-        let recent = now - lastTargetTime < 0.3 ? lastTarget : nil
+        // Back to where this touch started moving, undoing the travel before it was known to be a slide.
+        let recent = now - lastTargetTime < 0.3 ? moveStart : nil
         let p = heldAt ?? recent ?? CGEvent(source: nil)?.location ?? .zero
         heldAt = p
         lastTarget = p
@@ -221,6 +227,7 @@ final class EventTapController {
 
         // event.location is where the HID system put the cursor; only trust it to start a move.
         let base = fresh ? CGPoint(x: event.location.x - dx, y: event.location.y - dy) : lastTarget!
+        if fresh { moveStart = base }
         let target = clamp(CGPoint(x: base.x + mapped.x, y: base.y + mapped.y), from: base)
         lastTarget = target
         lastTargetTime = now

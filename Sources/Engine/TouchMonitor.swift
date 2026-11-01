@@ -154,8 +154,12 @@ final class TouchMonitor: Sendable {
     }
 
     /// True while a finger is sliding along an edge for volume or brightness, on any device.
+    /// A device that stops sending frames mid-slide (unplugged, asleep) stops counting after `releaseGrace`.
     var isEdgeSlideActive: Bool {
-        devices.mutate { map in map.values.contains { $0.edgeSlider.active != nil } }
+        let now = CFAbsoluteTimeGetCurrent()
+        return devices.mutate { map in
+            map.values.contains { $0.edgeSlider.active != nil && now - $0.lastTouch < releaseGrace }
+        }
     }
 
     /// True while a finger is on (or just left) a device matching `target`.
