@@ -38,6 +38,7 @@ A native macOS menu bar app, built with SwiftUI.
 | 📜 **Two-finger scroll** | Scrolling follows your fingers too, including momentum, and respects Natural scrolling. |
 | ↔️ **Swipe between pages** | Sideways swipes go back and forward in Safari, Finder and other apps. |
 | 🔔 **Notification Center** | Two fingers left from *your* right edge open Notification Center. |
+| 🔆 **Volume & brightness** | Slide one finger up or down along *your* left edge for brightness, or your right edge for volume, with macOS's own on-screen indicator. Turn it on for the built-in trackpad, the Magic Trackpad, or both. Each step gives a haptic tick, which you can turn off. |
 | 🪟 **Three- and four-finger swipes** | Mission Control, App Exposé and switching Spaces are turned to match. What each one does is still up to System Settings → Trackpad. |
 | 🎯 **Only the trackpad** | External Magic Trackpads only by default, or all trackpads. A mouse is never touched. |
 
@@ -135,6 +136,7 @@ flowchart LR
 - **Scroll** (session-level tap): the same direction approach, with momentum keeping the last direction and Natural scrolling respected.
 - **Swipe between pages**: AppKit decides on more than the scroll deltas, so the tap also turns the undocumented raw deltas, the companion gesture events, the `IOHIDEvent` attached to each event (via private SkyLight/IOKit calls) and the finger positions in the touch events.
 - **Notification Center** (`EdgeSwipe.swift`): macOS looks for its edge swipe on the pad's own right edge, so the app recognises "two fingers left from your right edge" itself, opens Notification Center through its accessibility action and drops that scroll.
+- **Volume & brightness** (`EdgeSlider.swift`): one finger that lands within 8 mm of your left or right edge and then moves mostly up or down becomes a slider. Every 5 mm presses the brightness or volume key once, with a haptic tick on Force Touch trackpads, and the pointer stays still while it slides. A sideways move from the edge is an ordinary pointer move. Brightness keys reach the built-in display and Apple displays only.
 - **Three- and four-finger swipes** (`DockSwipe.swift`, HID-level tap): macOS recognises them on the pad's own axes and sends the Dock a "dock swipe" event with an axis and a progress. The tap turns those (and the attached `IOHIDEvent`, which is what the Dock acts on) into your frame. What each swipe does is still decided by System Settings → Trackpad → More Gestures.
 
 </details>
@@ -223,6 +225,7 @@ Sources/
     TouchMonitor.swift   Which device is touched, finger centroid travel (mm)
     EventTap.swift       Pointer, scroll and page-swipe remapping
     EdgeSwipe.swift      Notification Center swipe
+    EdgeSlider.swift     Volume and brightness from your left and right edges
     DockSwipe.swift      Three- and four-finger swipes
     HIDEvent.swift       Reads and rewrites the IOHIDEvent attached to a CGEvent
 TrackpadRotator.xcodeproj  Xcode project
