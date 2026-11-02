@@ -4,6 +4,7 @@ import SwiftUI
 struct TrackpadRotatorApp: App {
     @State private var status = StatusViewModel()
     @State private var settings = SettingsViewModel()
+    @Environment(\.openWindow) private var openWindow
 
     var body: some Scene {
         MenuBarExtra {
@@ -12,6 +13,8 @@ struct TrackpadRotatorApp: App {
                 .environment(settings)
         } label: {
             Image(systemName: settings.config.enabled ? "rotate.right.fill" : "rotate.right")
+                // UI tests can't click the menu bar icon, so the window opens at launch for them.
+                .task { if isUITesting { openWindow(id: "main") } }
         }
         .menuBarExtraStyle(.window)
 

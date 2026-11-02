@@ -12,7 +12,7 @@ scroll and swipes.
 
 | Item             | Value |
 |------------------|-------|
-| Target / scheme  | `TrackpadRotator` (one app target, no test targets) |
+| Target / scheme  | `TrackpadRotator` (app) and `TrackpadRotatorUITests` (XCUITest E2E), one shared scheme |
 | Platform         | macOS 14.0+ |
 | Swift            | Swift 6 language mode, strict concurrency. UI state is `@MainActor @Observable`. |
 | Project          | `TrackpadRotator.xcodeproj` with a synchronized `Sources` folder: new files are picked up automatically. No packages. |
@@ -31,6 +31,7 @@ Sources/
   Repositories/      Settings (UserDefaults), permissions, trackpad
   ViewModels/        StatusViewModel, SettingsViewModel, UpdateChecker
   Views/             Pages, sections, items (see §4)
+UITests/             XCUITest E2E tests (outside Sources so build.sh skips them)
 ```
 
 ## 3. Commands
@@ -45,7 +46,15 @@ Builds and signs `build/Trackpad Rotator.app` without Xcode. Or:
 xcodebuild -project TrackpadRotator.xcodeproj -scheme TrackpadRotator build
 ```
 
-There are no automated tests: after a UI change, run the app and check the menu bar panel and the main window.
+E2E tests (XCUITest; macOS drives the mouse while they run):
+
+```bash
+xcodebuild test -project TrackpadRotator.xcodeproj -scheme TrackpadRotator
+```
+
+The tests launch the app with `-uiTesting`, which uses a throwaway settings store and skips permission prompts
+(`isUITesting` in `SettingsRepository.swift`). They find controls by `accessibilityIdentifier`, so keep those stable
+and add a test when you add a pane or control. Still run the app and look at a UI change in light and dark mode.
 
 ## 4. UI conventions
 

@@ -19,9 +19,9 @@ final class StatusViewModel {
         self.permissions = permissions
         self.trackpad = trackpad
 
-        accessibilityGranted = permissions.promptAccessibility()
+        accessibilityGranted = isUITesting ? permissions.accessibilityGranted : permissions.promptAccessibility()
         inputMonitoringGranted = permissions.inputMonitoringGranted
-        if !inputMonitoringGranted { permissions.promptInputMonitoring() }
+        if !inputMonitoringGranted, !isUITesting { permissions.promptInputMonitoring() }
 
         trackpad.startMonitoring()
         multitouchAvailable = trackpad.multitouchAvailable
