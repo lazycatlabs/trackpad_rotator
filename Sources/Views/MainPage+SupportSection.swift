@@ -19,7 +19,11 @@ extension MainPage {
 
         var body: some View {
             VStack(alignment: .leading, spacing: Spacing.xxl) {
-                GroupBox("Sponsor") {
+                Text("Trackpad Rotator is free. If it helps you, you can help keep it going.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                GroupBox("Support") {
                     VStack(spacing: Spacing.md) {
                         ForEach(Self.options) { option in
                             if option.id != Self.options.first?.id { Divider() }

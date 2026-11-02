@@ -38,7 +38,7 @@ final class SettingsWindowTests: XCTestCase {
     /// so with `-uiTesting` the app opens this window at launch.
     private func openSettings() {
         app.activate()
-        XCTAssertTrue(element("sidebar.general").waitForExistence(timeout: 5), "settings window")
+        XCTAssertTrue(element("main.tabs").waitForExistence(timeout: 5), "settings window")
     }
 
     /// Keeps a screenshot of the settings window in the test results.
@@ -49,25 +49,24 @@ final class SettingsWindowTests: XCTestCase {
         add(shot)
     }
 
-    private func show(_ pane: String) {
+    /// Picks a settings tab by its title.
+    private func show(_ tab: String) {
         app.activate()
-        element("sidebar.\(pane)").click()
+        element("main.tabs").radioButtons[tab].click()
     }
 
     // MARK: - Tests
 
-    func testEveryPaneOpensFromTheSidebar() {
+    func testEveryTabShowsItsSettings() {
         openSettings()
-        let panes: [(String, String)] = [
-            ("general", "main.enabled"), ("orientation", "orientation.rotation"), ("gestures", "main.target"),
-            ("speed", "speed.pointer.slider"), ("edges", "edgeSliders.external"),
-            ("permissions", "permissions.checkAgain"), ("devices", "devices.rescan"),
-            ("support", "support.githubSponsors"), ("about", "about.whatsNew"),
+        let tabs: [(String, String)] = [
+            ("Orientation", "orientation.rotation"), ("Gestures", "main.target"),
+            ("System", "permissions.checkAgain"), ("About", "support.githubSponsors"),
         ]
-        for (pane, control) in panes {
-            show(pane)
-            XCTAssertTrue(element(control).waitForExistence(timeout: 3), "\(pane) pane shows \(control)")
-            snapshot("pane-\(pane)")
+        for (tab, control) in tabs {
+            show(tab)
+            XCTAssertTrue(element(control).waitForExistence(timeout: 3), "\(tab) tab shows \(control)")
+            snapshot("tab-\(tab.lowercased())")
         }
     }
 
@@ -82,7 +81,7 @@ final class SettingsWindowTests: XCTestCase {
 
     func testResetAxesClearsSwapAndInvert() {
         openSettings()
-        show("orientation")
+        show("Orientation")
         for id in ["orientation.swapXY", "orientation.invertX", "orientation.invertY"] {
             element(id).click()
             expect(id, on: true)
@@ -95,7 +94,7 @@ final class SettingsWindowTests: XCTestCase {
 
     func testScrollRemapGatesSwipeNavigation() {
         openSettings()
-        show("gestures")
+        show("Gestures")
         expect("apply.scroll", on: true)
         XCTAssertTrue(element("apply.swipeNavigation").isEnabled)
         element("apply.scroll").click()
@@ -106,7 +105,7 @@ final class SettingsWindowTests: XCTestCase {
 
     func testHapticsNeedAnEdgeSlider() {
         openSettings()
-        show("edges")
+        show("Gestures")
         XCTAssertFalse(element("edgeSliders.haptics").isEnabled, "off while no trackpad has edge sliders")
         element("edgeSliders.builtIn").click()
         XCTAssertTrue(element("edgeSliders.haptics").isEnabled)
@@ -114,7 +113,7 @@ final class SettingsWindowTests: XCTestCase {
 
     func testSupportListsEveryOption() {
         openSettings()
-        show("support")
+        show("About")
         for id in ["githubSponsors", "buyMeACoffee", "koFi", "paypal", "saweria", "github"] {
             XCTAssertTrue(element("support.\(id)").exists, id)
         }
@@ -122,7 +121,7 @@ final class SettingsWindowTests: XCTestCase {
 
     func testWhatsNewSheetOpensAndCloses() {
         openSettings()
-        show("about")
+        show("About")
         element("about.whatsNew").click()
         let close = element("whatsNew.close")
         XCTAssertTrue(close.waitForExistence(timeout: 5))
