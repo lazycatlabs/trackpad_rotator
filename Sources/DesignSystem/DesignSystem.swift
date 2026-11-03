@@ -35,8 +35,12 @@ enum Metrics {
 
     enum Main {
         static let columnSpacing: CGFloat = 14
-        static let sidebarWidth: CGFloat = 320
+        static let settingsWidth: CGFloat = 370
         static let previewCaptionWidth: CGFloat = 520
+        /// Every tab gets this height, so switching tabs never resizes the window; longer tabs scroll.
+        static let tabHeight: CGFloat = 400
+        /// Leading icon column in a settings row, so titles line up.
+        static let rowIconWidth: CGFloat = 20
         /// How often the "Trackpad in use" label is re-read, in seconds.
         static let activityRefresh = 0.1
     }

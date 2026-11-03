@@ -1,6 +1,9 @@
 import Foundation
 import ServiceManagement
 
+/// Set by the UI tests (`-uiTesting`): keeps them away from the user's settings and permission prompts.
+let isUITesting = ProcessInfo.processInfo.arguments.contains("-uiTesting")
+
 /// Persists settings in UserDefaults and publishes them to the engine.
 @MainActor
 final class SettingsRepository {
@@ -8,9 +11,19 @@ final class SettingsRepository {
     /// Snapshot read by the event tap on every event.
     nonisolated static let engine = Locked(EngineConfig())
 
-    private let defaults = UserDefaults.standard
+    private let defaults: UserDefaults
 
-    private init() {}
+    private init() {
+        guard isUITesting else {
+            defaults = .standard
+            return
+        }
+        // UI tests get their own store, wiped on every launch, starting with remapping off.
+        let suite = "lazycatlabs.trackpadrotator.uitests"
+        defaults = UserDefaults(suiteName: suite)!
+        defaults.removePersistentDomain(forName: suite)
+        defaults.set(false, forKey: "enabled")
+    }
 
     /// Copies settings saved under the old bundle identifier, once, so upgrading keeps them.
     private func migrateFromOldIdentifier() {
