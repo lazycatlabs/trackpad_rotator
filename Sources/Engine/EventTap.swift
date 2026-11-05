@@ -196,6 +196,12 @@ final class EventTapController {
         unseenWarp = (target.x.rounded(.down) - current.x.rounded(.down), target.y.rounded(.down) - current.y.rounded(.down))
     }
 
+    /// A finger landed on the remapped trackpad: detach now, so its first move isn't drawn
+    /// unturned before we can put the cursor back.
+    func fingerDown() {
+        if isRunning { setDetached(true) }
+    }
+
     private func setDetached(_ value: Bool) {
         // A round trip to the window server: once per change, not per event, or fast moves fall behind.
         guard value != detached else { return }
@@ -238,7 +244,8 @@ final class EventTapController {
         let mapped = (x: turned.x * cfg.pointerSpeed, y: turned.y * cfg.pointerSpeed)
 
         // event.location is where the HID system put the cursor; only trust it to start a move.
-        let base = fresh ? CGPoint(x: event.location.x - raw.x, y: event.location.y - raw.y) : lastTarget!
+        // Still attached, the hardware has already moved it by this event.
+        let base = !fresh ? lastTarget! : detached ? location : CGPoint(x: location.x - raw.x, y: location.y - raw.y)
         if fresh { moveStart = base }
         let target = clamp(CGPoint(x: base.x + mapped.x, y: base.y + mapped.y), from: base)
         lastTarget = target
