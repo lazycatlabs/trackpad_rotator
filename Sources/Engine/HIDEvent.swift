@@ -129,6 +129,17 @@ enum AttachedHIDEvent {
             .joined(separator: ",")
     }
 
+    private static let getSenderID = load(iokit, "IOHIDEventGetSenderID",
+                                          as: (@convention(c) (Ref) -> UInt64).self)
+
+    /// Registry ID of the HID service that sent the attached event; nil for synthetic events
+    /// or when the private API is missing.
+    static func senderID(of event: CGEvent) -> UInt64? {
+        guard let copyEvent, let getSenderID, let hid = copyEvent(event)?.takeRetainedValue() else { return nil }
+        let id = getSenderID(hid)
+        return id == 0 ? nil : id
+    }
+
     /// Scroll values of the attached event, for diagnostics.
     static func scroll(of event: CGEvent) -> (x: Double, y: Double)? {
         guard let copyEvent, let getType, let getFloat,

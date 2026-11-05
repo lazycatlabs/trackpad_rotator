@@ -1,5 +1,6 @@
 #include "MTBridge.h"
 #include <CoreFoundation/CoreFoundation.h>
+#include <IOKit/IOKitLib.h>
 #include <dlfcn.h>
 #include <pthread.h>
 
@@ -29,6 +30,7 @@ static int (*pStop)(MTDeviceRef);
 static bool (*pIsBuiltIn)(MTDeviceRef);
 static int (*pGetFamilyID)(MTDeviceRef, int *);
 static int (*pGetDims)(MTDeviceRef, int *, int *);
+static io_service_t (*pGetService)(MTDeviceRef);
 
 static pthread_mutex_t gLock = PTHREAD_MUTEX_INITIALIZER;
 static CFMutableArrayRef gDevices;
@@ -50,6 +52,7 @@ static bool load(void) {
     pIsBuiltIn = dlsym(h, "MTDeviceIsBuiltIn");
     pGetFamilyID = dlsym(h, "MTDeviceGetFamilyID");
     pGetDims = dlsym(h, "MTDeviceGetSensorSurfaceDimensions");
+    pGetService = dlsym(h, "MTDeviceGetService");
     if (!pCreateList || !pRegister || !pStart) return false;
     gLoadState = 1;
     return true;
@@ -150,6 +153,10 @@ bool MTBGetDeviceInfo(int32_t index, MTBDeviceInfo *out) {
         out->familyID = family;
         out->width = w;
         out->height = h;
+        // Its pointer events carry the multitouch device's own registry ID as their sender.
+        out->senderID = 0;
+        io_service_t service = pGetService ? pGetService(dev) : 0;
+        if (service) IORegistryEntryGetRegistryEntryID(service, &out->senderID);
     }
     pthread_mutex_unlock(&gLock);
     return ok;
