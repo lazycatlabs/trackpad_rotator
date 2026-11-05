@@ -237,7 +237,10 @@ final class EventTapController {
         let seen = fresh ? nil : prevLocation.map { (x: Double(location.x - $0.x), y: Double(location.y - $0.y)) }
         let warped = seen ?? unseenWarp
         prevLocation = location
-        guard dx != 0 || dy != 0 else { return }
+        guard dx != 0 || dy != 0 else {
+            unseenWarp = (0, 0) // this event already carried the pending warp
+            return
+        }
         let raw = (x: dx - warped.x, y: dy - warped.y)
         _ = TouchMonitor.shared.consumeMotion(cfg.target) // keep finger motion from piling up for scroll
         let turned = cfg.transform.apply(raw.x, raw.y)
@@ -260,13 +263,15 @@ final class EventTapController {
 
     /// A non-trackpad device moved: give the cursor back to the hardware.
     private func handBack(_ event: CGEvent, dx: Double, dy: Double) {
+        let base = event.location
+        // This delta still carries our warps since the last trackpad event, like handlePointer's.
+        let pending = prevLocation.map { (x: Double(base.x - $0.x), y: Double(base.y - $0.y)) } ?? unseenWarp
         lastTarget = nil
         prevLocation = nil
         unseenWarp = (0, 0)
         guard detached else { return }
         // While detached the hardware didn't move the cursor, so apply this delta ourselves.
-        let base = event.location
-        let target = clamp(CGPoint(x: base.x + dx, y: base.y + dy), from: base)
+        let target = clamp(CGPoint(x: base.x + dx - pending.x, y: base.y + dy - pending.y), from: base)
         warp(to: target, from: base)
         event.location = target
         setDetached(false)
