@@ -51,7 +51,7 @@ The **Touch Preview** window shows your fingers twice: as the trackpad reports t
 </p>
 
 > [!TIP]
-> Every remap (pointer, scroll, page swipes, Notification Center, three/four-finger swipes) has its own toggle in the menu bar panel, plus speed sliders for pointer and scroll.
+> Every remap (pointer, scroll, page swipes, Notification Center, three/four-finger swipes) has its own toggle in the menu bar panel, plus speed sliders for pointer and scroll in 0.01 steps.
 
 ## Install
 
@@ -132,8 +132,8 @@ flowchart LR
 <details>
 <summary><b>Each gesture in detail</b></summary>
 
-- **Pointer** (HID-level tap): direction comes from finger travel turned by the orientation; distance comes from macOS's own delta × the pointer speed. While the trackpad is touched, the cursor is detached from the hardware (`CGAssociateMouseAndMouseCursorPosition`) and placed with `CGWarpMouseCursorPosition`.
-- **Scroll** (session-level tap): the same direction approach, with momentum keeping the last direction and Natural scrolling respected.
+- **Pointer** (HID-level tap): macOS's own delta (so tracking speed and acceleration still apply) is turned by the orientation and multiplied by the pointer speed. Only events from the target trackpad are remapped. From the moment a finger lands, the cursor is detached from the hardware (`CGAssociateMouseAndMouseCursorPosition`) and placed with `CGWarpMouseCursorPosition`. macOS adds each warp to the next event's delta, in whole pixels, so that jump is taken back out first; otherwise every move would feed the next.
+- **Scroll** (session-level tap): direction comes from finger travel turned by the orientation, with momentum keeping the last direction and Natural scrolling respected.
 - **Swipe between pages**: AppKit decides on more than the scroll deltas, so the tap also turns the undocumented raw deltas, the companion gesture events, the `IOHIDEvent` attached to each event (via private SkyLight/IOKit calls) and the finger positions in the touch events.
 - **Notification Center** (`EdgeSwipe.swift`): macOS looks for its edge swipe on the pad's own right edge, so the app recognises "two fingers left from your right edge" itself, opens Notification Center through its accessibility action and drops that scroll.
 - **Volume & brightness** (`EdgeSlider.swift`): one finger that lands within 8 mm of your left or right edge and then moves mostly up or down becomes a slider. Every 5 mm presses the brightness or volume key once, with a haptic tick on Force Touch trackpads, and the pointer stays still while it slides. A sideways move from the edge is an ordinary pointer move. Brightness keys reach the built-in display and Apple displays only.
