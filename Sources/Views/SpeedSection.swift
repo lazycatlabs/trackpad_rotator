@@ -59,6 +59,14 @@ private struct SpeedSlider: View {
                 }
                 .labelsHidden()
                 .accessibilityIdentifier("\(identifier).slider")
+                // VoiceOver's increment and decrement move one step, like the buttons.
+                .accessibilityAdjustableAction { direction in
+                    switch direction {
+                    case .increment: set(value + Metrics.Speed.step)
+                    case .decrement: set(value - Metrics.Speed.step)
+                    @unknown default: break
+                    }
+                }
                 stepButton("Faster", systemImage: "hare", by: Metrics.Speed.step, id: "increase")
             }
         }
