@@ -197,6 +197,8 @@ final class EventTapController {
     }
 
     private func setDetached(_ value: Bool) {
+        // A round trip to the window server: once per change, not per event, or fast moves fall behind.
+        guard value != detached else { return }
         CGAssociateMouseAndMouseCursorPosition(value ? 0 : 1)
         detached = value
     }
