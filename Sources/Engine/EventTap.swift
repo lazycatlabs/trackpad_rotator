@@ -220,7 +220,9 @@ final class EventTapController {
             handBack(event, dx: dx, dy: dy)
             return
         }
-        guard TouchMonitor.shared.isTargetActive(cfg.target) else {
+        // Go by the device that sent the event: a finger resting on the turned pad mustn't
+        // turn a mouse or the other trackpad.
+        guard TouchMonitor.shared.isTargetSender(AttachedHIDEvent.senderID(of: event), cfg.target) else {
             stats.skippedNotTrackpad += 1
             handBack(event, dx: dx, dy: dy)
             return

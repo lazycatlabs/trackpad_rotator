@@ -175,6 +175,18 @@ final class TouchMonitor: Sendable {
         }
     }
 
+    /// True when the HID service `sender` is a device matching `target`. Without a sender to go
+    /// on (synthetic events, or a device whose service is unknown), falls back to `isTargetActive`.
+    func isTargetSender(_ sender: UInt64?, _ target: DeviceTarget) -> Bool {
+        guard let sender else { return isTargetActive(target) }
+        let now = CFAbsoluteTimeGetCurrent()
+        return devices.mutate { map in
+            map.values.contains { d in
+                d.matches(target) && (d.info.senderID == 0 ? now - d.lastTouch < releaseGrace : d.info.senderID == sender)
+            }
+        }
+    }
+
     /// Returns and clears the finger motion (mm, pad frame) since the last call,
     /// summed over devices matching `target`.
     func consumeMotion(_ target: DeviceTarget) -> (x: Double, y: Double) {
