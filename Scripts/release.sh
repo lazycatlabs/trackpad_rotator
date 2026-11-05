@@ -2,8 +2,10 @@
 # Builds a notarized release: build/release/TrackpadRotator-<version>.dmg and .zip.
 #
 # One-time setup:
-#   1. A "Developer ID Application" certificate for team 53KYGKG9B9 in the keychain
-#      (Xcode → Settings → Accounts → Manage Certificates → + → Developer ID Application).
+#   1. Developer ID signing for team 53KYGKG9B9. Only the Account Holder can create it, so either:
+#      - the Account Holder gives you "Access to Cloud Managed Developer ID Certificate"
+#        (App Store Connect → Users and Access → your user); Xcode then signs in the cloud, or
+#      - the Account Holder creates a "Developer ID Application" certificate and shares it as a .p12.
 #   2. Notary credentials stored in the keychain:
 #        xcrun notarytool store-credentials notary --apple-id <apple-id> --team-id 53KYGKG9B9
 #      (it asks for an app-specific password from account.apple.com).
@@ -36,7 +38,7 @@ EOF
 
 xcodebuild archive -project TrackpadRotator.xcodeproj -scheme TrackpadRotator -configuration Release \
     -destination "generic/platform=macOS" -archivePath "$OUT/TrackpadRotator.xcarchive" -quiet
-xcodebuild -exportArchive -archivePath "$OUT/TrackpadRotator.xcarchive" \
+xcodebuild -exportArchive -allowProvisioningUpdates -archivePath "$OUT/TrackpadRotator.xcarchive" \
     -exportOptionsPlist "$OUT/ExportOptions.plist" -exportPath "$OUT/export" -quiet
 
 # Notarize the app itself and staple it, so the zip works offline too.
@@ -53,12 +55,13 @@ cp -R "$APP" "$OUT/dmg/"
 ln -s /Applications "$OUT/dmg/Applications"
 hdiutil create -volname "Trackpad Rotator" -srcfolder "$OUT/dmg" -format UDZO -ov "$OUT/$NAME.dmg" -quiet
 rm -rf "$OUT/dmg"
-IDENTITY=$(security find-identity -v -p codesigning | grep -m1 "Developer ID Application:.*($TEAM)" | awk '{print $2}')
-codesign --sign "$IDENTITY" --timestamp "$OUT/$NAME.dmg"
+# Cloud-managed signing can't sign a DMG; notarization accepts it unsigned, so sign only with a local certificate.
+IDENTITY=$(security find-identity -v -p codesigning | grep -m1 "Developer ID Application:.*($TEAM)" | awk '{print $2}' || true)
+[[ -n "$IDENTITY" ]] && codesign --sign "$IDENTITY" --timestamp "$OUT/$NAME.dmg"
 xcrun notarytool submit "$OUT/$NAME.dmg" --keychain-profile "$PROFILE" --wait
 xcrun stapler staple "$OUT/$NAME.dmg"
 
 spctl --assess --type execute -v "$APP"
-spctl --assess --type open --context context:primary-signature -v "$OUT/$NAME.dmg"
+xcrun stapler validate "$OUT/$NAME.dmg"
 shasum -a 256 "$OUT/$NAME.dmg" "$OUT/$NAME.zip"
 echo "Release ready in $PWD/$OUT"

@@ -65,12 +65,12 @@ brew install --cask lazycatlabs/tap/trackpad-rotator
 
 **Or download the DMG** from [Releases](https://github.com/lazycatlabs/trackpad_rotator/releases/latest), open it and drag **Trackpad Rotator** to Applications. A zip of the same app is there too.
 
+Trackpad Rotator is signed with Developer ID and notarized by Apple, so it opens like any other app.
+
 > [!NOTE]
-> **First launch.** Trackpad Rotator isn't notarized yet, so macOS blocks it the first time:
->
-> 1. Open Trackpad Rotator.
-> 2. Go to **System Settings → Privacy & Security**.
-> 3. Click **Open Anyway**, once.
+> **Upgrading from 1.3.0 or earlier.** 1.4.0 has a new bundle identifier. Your settings carry over, but macOS treats
+> it as a new app: grant **Accessibility** and **Input Monitoring** again, and remove the old *Trackpad Rotator* entries
+> from those lists in **System Settings → Privacy & Security**.
 
 When the app runs from `/Applications` for the first time, it turns on **Launch at login**. You can turn that off in the settings window.
 
