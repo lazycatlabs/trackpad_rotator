@@ -23,6 +23,16 @@ private struct SpeedSlider: View {
     var title: LocalizedStringKey
     @Binding var value: Double
 
+    private var snapped: Binding<Double> {
+        Binding(get: { value }, set: { set($0) })
+    }
+
+    /// Rounds to a step and keeps it in range.
+    private func set(_ new: Double) {
+        let r = Metrics.Speed.range
+        value = min(max((new / Metrics.Speed.step).rounded() / (1 / Metrics.Speed.step), r.lowerBound), r.upperBound)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: Spacing.xxs) {
             HStack {
@@ -31,6 +41,7 @@ private struct SpeedSlider: View {
                 Text("\(value.formatted(.number.precision(.fractionLength(0...2))))×")
                     .monospacedDigit()
                     .foregroundStyle(.secondary)
+                    .accessibilityIdentifier("\(identifier).value")
                 Button {
                     value = 1
                 } label: {
@@ -41,15 +52,27 @@ private struct SpeedSlider: View {
                 .opacity(value == 1 ? 0 : 1)
                 .accessibilityIdentifier("\(identifier).reset")
             }
-            Slider(value: $value, in: Metrics.Speed.range, step: Metrics.Speed.step) {
-                Text(title)
-            } minimumValueLabel: {
-                Image(systemName: "tortoise").font(.caption)
-            } maximumValueLabel: {
-                Image(systemName: "hare").font(.caption)
+            HStack {
+                stepButton("Slower", systemImage: "tortoise", by: -Metrics.Speed.step, id: "decrease")
+                Slider(value: snapped, in: Metrics.Speed.range) {
+                    Text(title)
+                }
+                .labelsHidden()
+                .accessibilityIdentifier("\(identifier).slider")
+                stepButton("Faster", systemImage: "hare", by: Metrics.Speed.step, id: "increase")
             }
-            .labelsHidden()
-            .accessibilityIdentifier("\(identifier).slider")
         }
+    }
+
+    private func stepButton(_ label: LocalizedStringKey, systemImage: String, by step: Double, id: String) -> some View {
+        Button {
+            set(value + step)
+        } label: {
+            Label(label, systemImage: systemImage).labelStyle(.iconOnly).font(.caption)
+        }
+        .buttonStyle(.borderless)
+        .foregroundStyle(.secondary)
+        .help(label)
+        .accessibilityIdentifier("\(identifier).\(id)")
     }
 }

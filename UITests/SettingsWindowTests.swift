@@ -111,6 +111,19 @@ final class SettingsWindowTests: XCTestCase {
         XCTAssertTrue(element("edgeSliders.haptics").isEnabled)
     }
 
+    func testSpeedButtonsStepByHundredths() {
+        openSettings()
+        show("Orientation")
+        let value = { self.element("speed.pointer.value").value as? String }
+        let shown = { (v: Double) in "\(v.formatted(.number.precision(.fractionLength(0...2))))×" }
+        XCTAssertEqual(value(), shown(1))
+        element("speed.pointer.increase").click()
+        XCTAssertEqual(value(), shown(1.01))
+        element("speed.pointer.decrease").click()
+        element("speed.pointer.decrease").click()
+        XCTAssertEqual(value(), shown(0.99))
+    }
+
     func testSupportListsEveryOption() {
         openSettings()
         show("About")

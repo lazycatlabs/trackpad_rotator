@@ -56,7 +56,8 @@ enum Metrics {
 
     enum Speed {
         static let range = 0.25...3.0
-        static let step = 0.05
+        /// Values snap to this; the slider itself is continuous so it doesn't draw a tick per step.
+        static let step = 0.01
     }
 
     /// The live touch preview: two pads drawn on a `Canvas`.
