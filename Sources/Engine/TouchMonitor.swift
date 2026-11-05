@@ -98,8 +98,8 @@ final class TouchMonitor: Sendable {
         let now = CFAbsoluteTimeGetCurrent()
         let cfg = SettingsRepository.engine.get()
         let edgeSwipeOn = cfg.enabled && cfg.notificationCenterSwipe && !cfg.transform.isIdentity
-        let (openNotificationCenter, slide) = devices.mutate { map -> (Bool, (EdgeSliderTracker.Control, Int)?) in
-            guard var d = map[index] else { return (false, nil) }
+        let (openNotificationCenter, slide, landed) = devices.mutate { map -> (Bool, (EdgeSliderTracker.Control, Int)?, Bool) in
+            guard var d = map[index] else { return (false, nil, false) }
             d.touches = points
             let touching = points.filter(\.isTouching)
             if !touching.isEmpty { d.lastTouch = now }
@@ -118,6 +118,7 @@ final class TouchMonitor: Sendable {
                 }
                 d.lastCentroid = (cx, cy)
             }
+            let landed = !ids.isEmpty && d.lastFingerIDs.isEmpty && d.matches(cfg.target)
             d.lastFingerIDs = ids
 
             var fired = false
@@ -138,7 +139,10 @@ final class TouchMonitor: Sendable {
                 d.edgeSlider = EdgeSliderTracker()
             }
             map[index] = d
-            return (fired, slide)
+            return (fired, slide, landed)
+        }
+        if landed, cfg.enabled, cfg.applyToPointer, !cfg.transform.isIdentity {
+            DispatchQueue.main.async { MainActor.assumeIsolated { EventTapController.shared.fingerDown() } }
         }
         if openNotificationCenter {
             DispatchQueue.main.async { NotificationCenterUI.open() }

@@ -6,10 +6,9 @@ private let log = Logger(subsystem: "com.lazycatlabs.trackpadrotator", category:
 
 /// Tracks the direction of finger travel from raw multitouch data.
 ///
-/// Both pointer and scroll take their *direction* from this rather than from the
-/// driver's deltas: once the pad is turned, the driver's deltas don't line up with
-/// the real finger motion. Noise is filtered by waiting for a minimum travel and
-/// blending successive directions.
+/// Scroll takes its *direction* from this rather than from the driver's deltas: once
+/// the pad is turned, the driver's deltas don't line up with the real finger motion.
+/// Noise is filtered by waiting for a minimum travel and blending successive directions.
 private struct DirectionTracker {
     private(set) var direction: (x: Double, y: Double)?
     private var accum = (x: 0.0, y: 0.0)
@@ -162,7 +161,11 @@ final class EventTapController {
     /// Where we last put the cursor; the next move builds on it so the path stays exact.
     private var lastTarget: CGPoint?
     private var lastTargetTime: CFAbsoluteTime = 0
-    private var pointerDirection = DirectionTracker()
+    /// How far our last warp moved the cursor, in whole pixels. macOS adds that jump to the next
+    /// event's delta, so it's taken back out to leave just the finger's motion.
+    private var unseenWarp = (x: 0.0, y: 0.0)
+    /// Where macOS had the cursor at the previous trackpad event.
+    private var prevLocation: CGPoint?
     /// While true we've asked macOS to stop moving the cursor with the hardware.
     private var detached = false
 
@@ -184,10 +187,24 @@ final class EventTapController {
         lastTargetTime = now
         _ = TouchMonitor.shared.consumeMotion(SettingsRepository.engine.get().target) // the slide isn't a move
         setDetached(true)
-        CGWarpMouseCursorPosition(p)
+        warp(to: p, from: CGEvent(source: nil)?.location ?? p)
+    }
+
+    private func warp(to target: CGPoint, from current: CGPoint) {
+        CGWarpMouseCursorPosition(target)
+        // macOS keeps the cursor on whole pixels (rounded down), and that's the jump it reports.
+        unseenWarp = (target.x.rounded(.down) - current.x.rounded(.down), target.y.rounded(.down) - current.y.rounded(.down))
+    }
+
+    /// A finger landed on the remapped trackpad: detach now, so its first move isn't drawn
+    /// unturned before we can put the cursor back.
+    func fingerDown() {
+        if isRunning { setDetached(true) }
     }
 
     private func setDetached(_ value: Bool) {
+        // A round trip to the window server: once per change, not per event, or fast moves fall behind.
+        guard value != detached else { return }
         CGAssociateMouseAndMouseCursorPosition(value ? 0 : 1)
         detached = value
     }
@@ -209,31 +226,36 @@ final class EventTapController {
             return
         }
         stats.remapped += 1
-        guard dx != 0 || dy != 0 else { return }
-
         let now = CFAbsoluteTimeGetCurrent()
         let fresh = lastTarget == nil || now - lastTargetTime > 0.3
-        if fresh { pointerDirection.reset() }
 
-        // Distance from macOS (keeps tracking speed and acceleration), direction from the finger.
-        let finger = TouchMonitor.shared.consumeMotion(cfg.target)
-        let speed = hypot(dx, dy) * cfg.pointerSpeed
-        let mapped: (x: Double, y: Double)
-        if let dir = pointerDirection.update(finger: finger, transform: cfg.transform) {
-            mapped = (dir.x * speed, dir.y * speed)
-        } else {
-            mapped = (0, 0) // hold still until the direction is known
+        // macOS's delta keeps tracking speed and acceleration, but includes our warps; without
+        // taking them out, each move feeds the next and the cursor runs away. Mid-move, how far
+        // macOS saw the cursor jump is exact even when events outrun the warps; at the start,
+        // something else may have moved the cursor meanwhile, so use our last warp.
+        let location = event.location
+        let seen = fresh ? nil : prevLocation.map { (x: Double(location.x - $0.x), y: Double(location.y - $0.y)) }
+        let warped = seen ?? unseenWarp
+        prevLocation = location
+        guard dx != 0 || dy != 0 else {
+            unseenWarp = (0, 0) // this event already carried the pending warp
+            return
         }
+        let raw = (x: dx - warped.x, y: dy - warped.y)
+        _ = TouchMonitor.shared.consumeMotion(cfg.target) // keep finger motion from piling up for scroll
+        let turned = cfg.transform.apply(raw.x, raw.y)
+        let mapped = (x: turned.x * cfg.pointerSpeed, y: turned.y * cfg.pointerSpeed)
 
         // event.location is where the HID system put the cursor; only trust it to start a move.
-        let base = fresh ? CGPoint(x: event.location.x - dx, y: event.location.y - dy) : lastTarget!
+        // Still attached, the hardware has already moved it by this event.
+        let base = !fresh ? lastTarget! : detached ? location : CGPoint(x: location.x - raw.x, y: location.y - raw.y)
         if fresh { moveStart = base }
         let target = clamp(CGPoint(x: base.x + mapped.x, y: base.y + mapped.y), from: base)
         lastTarget = target
         lastTargetTime = now
 
         setDetached(true)
-        CGWarpMouseCursorPosition(target)
+        warp(to: target, from: location)
         event.location = target
         event.setDoubleValueField(.mouseEventDeltaX, value: mapped.x)
         event.setDoubleValueField(.mouseEventDeltaY, value: mapped.y)
@@ -241,13 +263,16 @@ final class EventTapController {
 
     /// A non-trackpad device moved: give the cursor back to the hardware.
     private func handBack(_ event: CGEvent, dx: Double, dy: Double) {
+        let base = event.location
+        // This delta still carries our warps since the last trackpad event, like handlePointer's.
+        let pending = prevLocation.map { (x: Double(base.x - $0.x), y: Double(base.y - $0.y)) } ?? unseenWarp
         lastTarget = nil
-        pointerDirection.reset()
+        prevLocation = nil
+        unseenWarp = (0, 0)
         guard detached else { return }
         // While detached the hardware didn't move the cursor, so apply this delta ourselves.
-        let base = event.location
-        let target = clamp(CGPoint(x: base.x + dx, y: base.y + dy), from: base)
-        CGWarpMouseCursorPosition(target)
+        let target = clamp(CGPoint(x: base.x + dx - pending.x, y: base.y + dy - pending.y), from: base)
+        warp(to: target, from: base)
         event.location = target
         setDetached(false)
     }
