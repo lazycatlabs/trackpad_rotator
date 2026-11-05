@@ -217,6 +217,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 53KYGKG9B9;
 				EXECUTABLE_NAME = TrackpadRotator;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lazycatlabs.trackpadrotator;
 				PRODUCT_NAME = "Trackpad Rotator";
@@ -233,6 +234,7 @@
 				DEAD_CODE_STRIPPING = YES;
 				DEVELOPMENT_TEAM = 53KYGKG9B9;
 				EXECUTABLE_NAME = TrackpadRotator;
+				ENABLE_HARDENED_RUNTIME = YES;
 				INFOPLIST_FILE = Info.plist;
 				PRODUCT_BUNDLE_IDENTIFIER = com.lazycatlabs.trackpadrotator;
 				PRODUCT_NAME = "Trackpad Rotator";

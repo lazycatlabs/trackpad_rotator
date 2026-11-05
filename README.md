@@ -230,7 +230,7 @@ Sources/
     HIDEvent.swift       Reads and rewrites the IOHIDEvent attached to a CGEvent
 TrackpadRotator.xcodeproj  Xcode project
 build.sh                 swiftc build, no Xcode project needed
-Scripts/                 App icon generator
+Scripts/                 App icon generator, notarized release build (release.sh)
 docs/                    README images, captured from the landing page
 ```
 
