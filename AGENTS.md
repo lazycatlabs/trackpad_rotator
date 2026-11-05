@@ -16,7 +16,7 @@ scroll and swipes.
 | Platform         | macOS 14.0+ |
 | Swift            | Swift 6 language mode, strict concurrency. UI state is `@MainActor @Observable`. |
 | Project          | `TrackpadRotator.xcodeproj` with a synchronized `Sources` folder: new files are picked up automatically. No packages. |
-| Bundle id        | `lazycatlabs.trackpadrotator` (logs use the same subsystem) |
+| Bundle id        | `com.lazycatlabs.trackpadrotator` (logs use the same subsystem) |
 | Localization     | English only, no String Catalog yet (see §4) |
 | Commits          | Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`), one commit per change, squash-merged PRs |
 

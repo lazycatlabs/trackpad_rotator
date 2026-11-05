@@ -19,7 +19,7 @@ final class SettingsRepository {
             return
         }
         // UI tests get their own store, wiped on every launch, starting with remapping off.
-        let suite = "lazycatlabs.trackpadrotator.uitests"
+        let suite = "com.lazycatlabs.trackpadrotator.uitests"
         defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         defaults.set(false, forKey: "enabled")
