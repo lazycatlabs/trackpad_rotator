@@ -230,7 +230,7 @@ Sources/
     HIDEvent.swift       Reads and rewrites the IOHIDEvent attached to a CGEvent
 TrackpadRotator.xcodeproj  Xcode project
 build.sh                 swiftc build, no Xcode project needed
-Scripts/                 App icon generator
+Scripts/                 App icon generator, notarized release build (release.sh)
 docs/                    README images, captured from the landing page
 ```
 
@@ -239,10 +239,10 @@ docs/                    README images, captured from the landing page
 <details>
 <summary><b>Diagnostics</b></summary>
 
-Logs go to the `lazycatlabs.trackpadrotator` subsystem:
+Logs go to the `com.lazycatlabs.trackpadrotator` subsystem:
 
 ```bash
-/usr/bin/log show --last 5m --predicate 'subsystem == "lazycatlabs.trackpadrotator"'
+/usr/bin/log show --last 5m --predicate 'subsystem == "com.lazycatlabs.trackpadrotator"'
 ```
 
 Use the full path in zsh, where `log` is a shell builtin. A per-gesture scroll summary is logged at debug level; add `--debug` to see it.

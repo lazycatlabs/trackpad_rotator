@@ -16,7 +16,7 @@ scroll and swipes.
 | Platform         | macOS 14.0+ |
 | Swift            | Swift 6 language mode, strict concurrency. UI state is `@MainActor @Observable`. |
 | Project          | `TrackpadRotator.xcodeproj` with a synchronized `Sources` folder: new files are picked up automatically. No packages. |
-| Bundle id        | `lazycatlabs.trackpadrotator` (logs use the same subsystem) |
+| Bundle id        | `com.lazycatlabs.trackpadrotator` (logs use the same subsystem) |
 | Localization     | English only, no String Catalog yet (see §4) |
 | Commits          | Conventional Commits (`feat:`, `fix:`, `refactor:`, `docs:`, `chore:`), one commit per change, squash-merged PRs |
 
@@ -98,4 +98,5 @@ Shared components that aren't a page, section or item (`StatusBanner`) keep thei
 - Don't push unless asked.
 - Releases: bump `CFBundleShortVersionString` and `CFBundleVersion` in `Info.plist` in a `chore: release X.Y.Z`
   commit. The About section reads What's New from the GitHub release tagged `vX.Y.Z`, so the
-  release notes are what users see.
+  release notes are what users see. `Scripts/release.sh` builds the notarized DMG and zip to attach (setup is at
+  the top of the script).

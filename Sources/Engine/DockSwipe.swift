@@ -1,7 +1,7 @@
 import CoreGraphics
 import os
 
-private let log = Logger(subsystem: "lazycatlabs.trackpadrotator", category: "dock")
+private let log = Logger(subsystem: "com.lazycatlabs.trackpadrotator", category: "dock")
 
 /// Three- and four-finger swipes (Mission Control, App Exposé, switching full-screen apps).
 ///

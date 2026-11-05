@@ -19,20 +19,21 @@ final class SettingsRepository {
             return
         }
         // UI tests get their own store, wiped on every launch, starting with remapping off.
-        let suite = "lazycatlabs.trackpadrotator.uitests"
+        let suite = "com.lazycatlabs.trackpadrotator.uitests"
         defaults = UserDefaults(suiteName: suite)!
         defaults.removePersistentDomain(forName: suite)
         defaults.set(false, forKey: "enabled")
     }
 
-    /// Copies settings saved under the old bundle identifier, once, so upgrading keeps them.
+    /// Copies settings saved under an earlier bundle identifier, once, so upgrading keeps them.
+    /// Privacy grants (Accessibility, Input Monitoring) belong to the old identifier and can't be carried over.
     private func migrateFromOldIdentifier() {
         guard defaults.object(forKey: "enabled") == nil,
-              let old = defaults.persistentDomain(forName: "local.trackpadrotator") else { return }
-        let keys = ["enabled", "rotation", "swapXY", "invertX", "invertY", "applyToPointer", "applyToScroll",
-                    "swipeNavigation", "notificationCenterSwipe", "dockSwipes", "target", "pointerSpeed", "scrollSpeed"]
-        for key in keys {
-            if let value = old[key] { defaults.set(value, forKey: key) }
+              let old = ["lazycatlabs.trackpadrotator", "local.trackpadrotator"]
+                  .lazy.compactMap({ self.defaults.persistentDomain(forName: $0) }).first else { return }
+        // Not copied: the login item belongs to the old identifier, so the new one registers its own.
+        for (key, value) in old where key != "launchAtLoginDefaultApplied" {
+            defaults.set(value, forKey: key)
         }
     }
 

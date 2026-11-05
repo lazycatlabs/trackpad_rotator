@@ -18,10 +18,12 @@ xcrun swiftc -O -swift-version 6 \
     -o "$APP/Contents/MacOS/TrackpadRotator"
 
 cp Info.plist "$APP/Contents/Info.plist"
+# Info.plist takes its identifier from Xcode; fill it in here.
+plutil -replace CFBundleIdentifier -string com.lazycatlabs.trackpadrotator "$APP/Contents/Info.plist"
 [[ -f Resources/AppIcon.icns ]] || ./Scripts/make-icon.sh
 cp Resources/AppIcon.icns "$APP/Contents/Resources/AppIcon.icns"
 # A stable signing identity keeps macOS privacy permissions across rebuilds;
 # ad-hoc signatures change every build and macOS forgets the grants.
 IDENTITY=${SIGN_IDENTITY:-$(security find-identity -v -p codesigning | grep -m1 "Apple Development: Mudassir" | awk '{print $2}')}
-codesign --force --sign "${IDENTITY:--}" "$APP"
+codesign --force --options runtime --sign "${IDENTITY:--}" "$APP"
 echo "Built: $PWD/$APP"
